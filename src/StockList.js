@@ -22,6 +22,10 @@ const columns = [
       headerName: 'Symbol',
     },
     {
+      field: 'index',
+      headerName: 'Index',
+    },
+    {
       field: 'company_logo_url',
       headerName: 'Logo',
       renderCell: (params) => (
@@ -115,6 +119,7 @@ function StockList() {
     React.useEffect(() => {
         const fetchAllData = async (stockList) => {
             const result = [];
+            let index = 0;
             for (const s of stockList) {
                 const res = await getZacksInfo(s);
                 const data = res[s];
@@ -126,10 +131,12 @@ function StockList() {
                     if (data.zacks_rank) {
                         result.push({
                             id: s,
+                            index,
                             name: data.ap_short_name,
                             price: data.last,
                             ...data,
                         });
+                        index++;
                     }
                 }
             }
