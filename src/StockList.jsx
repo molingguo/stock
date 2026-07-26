@@ -31,6 +31,7 @@ const compactCurrencyFormatter = new Intl.NumberFormat('en-US', {
 });
 
 const numberFormatter = new Intl.NumberFormat('en-US', { notation: 'compact' });
+const indexLevelFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 
 function formatCurrency(value) {
   return Number.isFinite(value) ? currencyFormatter.format(value) : '—';
@@ -42,6 +43,12 @@ function formatCompactCurrency(value) {
 
 function formatPercent(value) {
   return Number.isFinite(value) ? `${value >= 0 ? '+' : ''}${value.toFixed(2)}%` : '—';
+}
+
+function indexCardDetail(index) {
+  return Number.isFinite(index?.price)
+    ? `${indexLevelFormatter.format(index.price)} index level`
+    : 'Index quote unavailable';
 }
 
 function stockRank(stock, allStocks) {
@@ -618,18 +625,21 @@ function StockList() {
   );
 
   const stats = React.useMemo(() => {
-    const moves = stocks.map((stock) => stock.changePercentage).filter(Number.isFinite).sort((a, b) => a - b);
-    const middle = Math.floor(moves.length / 2);
-    const median = moves.length ? (moves.length % 2 ? moves[middle] : (moves[middle - 1] + moves[middle]) / 2) : null;
+    const advancers = stocks.filter((stock) => Number.isFinite(stock.changePercentage) && stock.changePercentage > 0).length;
+    const decliners = stocks.filter((stock) => Number.isFinite(stock.changePercentage) && stock.changePercentage < 0).length;
+    const breadthTotal = advancers + decliners;
     const strongBuys = stocks.filter((stock) => stock.zacksRank === 1).length;
     const buys = stocks.filter((stock) => stock.zacksRank === 2).length;
     return {
-      median,
-      marketCap: stocks.reduce((sum, stock) => sum + (stock.marketCap || 0), 0),
+      advancers,
+      decliners,
+      breadthPercentage: breadthTotal ? (advancers / breadthTotal) * 100 : null,
       strongBuys,
       buys,
     };
   }, [stocks]);
+  const sp500Index = data?.marketIndexes?.sp500;
+  const nasdaqIndex = data?.marketIndexes?.nasdaq;
 
   const columns = React.useMemo(() => [
     {
@@ -747,10 +757,25 @@ function StockList() {
       </section>
 
       <section className="stats-grid" aria-label="Market summary">
-        <StatCard eyebrow={isBestStocksUniverse ? 'Picks tracked' : isEtfUniverse ? 'Funds tracked' : 'Companies tracked'} value={loading && !data ? '—' : numberFormatter.format(stocks.length)} detail={data?.label || 'Selected universe'} />
+        <StatCard
+          eyebrow="S&P 500 today"
+          value={formatPercent(sp500Index?.changePercentage)}
+          detail={indexCardDetail(sp500Index)}
+          tone={sp500Index?.changePercentage > 0 ? 'positive' : sp500Index?.changePercentage < 0 ? 'negative' : 'default'}
+        />
+        <StatCard
+          eyebrow="Nasdaq Composite today"
+          value={formatPercent(nasdaqIndex?.changePercentage)}
+          detail={indexCardDetail(nasdaqIndex)}
+          tone={nasdaqIndex?.changePercentage > 0 ? 'positive' : nasdaqIndex?.changePercentage < 0 ? 'negative' : 'default'}
+        />
+        <StatCard
+          eyebrow="Market breadth"
+          value={Number.isFinite(stats.breadthPercentage) ? `${stats.breadthPercentage.toFixed(0)}%` : '—'}
+          detail={`${stats.advancers} advancing · ${stats.decliners} declining in ${data?.label || 'selected universe'}`}
+          tone={stats.advancers > stats.decliners ? 'positive' : stats.decliners > stats.advancers ? 'negative' : 'default'}
+        />
         <StatCard eyebrow="Zacks buy signals" value={stocks.length ? numberFormatter.format(stats.strongBuys + stats.buys) : '—'} detail={`${stats.strongBuys} Strong Buy · ${stats.buys} Buy`} tone="positive" />
-        <StatCard eyebrow="Median move" value={formatPercent(stats.median)} detail="Across available quotes" tone={stats.median >= 0 ? 'positive' : 'negative'} />
-        <StatCard eyebrow={isEtfUniverse ? 'Combined fund assets' : 'Combined market cap'} value={formatCompactCurrency(stats.marketCap || null)} detail={isEtfUniverse ? 'Across available funds' : 'Current company values'} />
       </section>
 
       <section className="market-panel">

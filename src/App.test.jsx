@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import App from './App';
 import { createStockCsv, sortStocksForExport } from './StockList';
@@ -28,6 +28,7 @@ const unratedStock = {
   zacksRank: null,
   zacksRankText: '',
   piotroskiScore: 6,
+  changePercentage: -0.75,
 };
 
 test('loads, filters, and switches stock universes', async () => {
@@ -60,6 +61,10 @@ test('loads, filters, and switches stock universes', async () => {
       zacksCoverage: 1,
       piotroskiCoverage: 2,
       piotroskiScoreYear: 2025,
+      marketIndexes: {
+        sp500: { symbol: 'SPX', name: 'S&P 500', price: 7411.98, changePercentage: 0.05 },
+        nasdaq: { symbol: 'COMPX', name: 'Nasdaq Composite', price: 24975.824, changePercentage: -0.644 },
+      },
       sources: ['Nasdaq', 'Zacks'],
       stocks: url.includes('extendedMarket')
         ? [{ ...stock, marketRank: 42 }, { ...unratedStock, marketRank: 57 }]
@@ -84,6 +89,12 @@ test('loads, filters, and switches stock universes', async () => {
   fireEvent.keyDown(screen.getByRole('dialog', { name: 'AAPL chart' }), { key: 'Escape' });
   expect(screen.queryByRole('dialog', { name: 'AAPL chart' })).not.toBeInTheDocument();
   expect(screen.getByText('Strong Buy')).toBeInTheDocument();
+  expect(within(screen.getByText('S&P 500 today').closest('article')).getByText('+0.05%')).toBeInTheDocument();
+  expect(within(screen.getByText('Nasdaq Composite today').closest('article')).getByText('-0.64%')).toBeInTheDocument();
+  expect(within(screen.getByText('Market breadth').closest('article')).getByText('50%')).toBeInTheDocument();
+  expect(screen.queryByText('Companies tracked')).not.toBeInTheDocument();
+  expect(screen.queryByText('Median move')).not.toBeInTheDocument();
+  expect(screen.queryByText('Combined market cap')).not.toBeInTheDocument();
   expect(screen.getAllByRole('link', { name: 'View AAPL Piotroski F-score 8 out of 9 details' })[0]).toHaveAttribute(
     'href', 'https://stockanalysis.com/stocks/aapl/statistics/'
   );
