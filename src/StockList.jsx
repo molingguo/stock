@@ -622,8 +622,8 @@ function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavori
           <strong className="stock-card__price">{formatCurrency(stock.price)}</strong>
         </div>
         <div className="stock-card__signals">
-          <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} symbol={stock.symbol} />
           <ChangeValue value={stock.changePercentage} />
+          <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} symbol={stock.symbol} />
         </div>
         <dl>
           <div><dt>{t(isEtf ? 'column.fundAssets' : 'column.marketCap')}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>

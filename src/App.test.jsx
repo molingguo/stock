@@ -93,8 +93,8 @@ test('loads, filters, and switches stock universes', async () => {
   expect(document.querySelector('script[src*="embed-widget-advanced-chart.js"]')).not.toBeInTheDocument();
   const mobileAaplCard = screen.getAllByText('AAPL').map((element) => element.closest('article')).find(Boolean);
   expect(mobileAaplCard.querySelector('.stock-card__lead > .stock-card__price')).toHaveTextContent('$200.00');
-  expect(mobileAaplCard.querySelector('.stock-card__signals').firstElementChild).toHaveClass('zacks-rank-link');
-  expect(mobileAaplCard.querySelector('.stock-card__signals').lastElementChild).toHaveClass('change-pill');
+  expect(mobileAaplCard.querySelector('.stock-card__signals').firstElementChild).toHaveClass('change-pill');
+  expect(mobileAaplCard.querySelector('.stock-card__signals').lastElementChild).toHaveClass('zacks-rank-link');
 
   fireEvent.click(screen.getByRole('button', { name: 'Open AAPL chart from company name' }));
   expect(screen.getByRole('dialog', { name: 'AAPL chart' })).toBeInTheDocument();
