@@ -1,5 +1,9 @@
 const express = require('express');
 const path = require('path');
+const { loadEnvFile } = require('./env');
+
+loadEnvFile();
+
 const { createMarketDataService } = require('./marketData');
 
 function createApp({ marketData = createMarketDataService() } = {}) {
@@ -26,7 +30,7 @@ function createApp({ marketData = createMarketDataService() } = {}) {
   });
 
   if (process.env.NODE_ENV === 'production') {
-    const buildPath = path.resolve(__dirname, '..', 'build');
+    const buildPath = path.resolve(__dirname, '..', 'dist');
     app.use(express.static(buildPath));
     app.get('*', (_request, response) => response.sendFile(path.join(buildPath, 'index.html')));
   }

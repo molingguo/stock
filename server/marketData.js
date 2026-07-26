@@ -10,6 +10,11 @@ const UNIVERSES = {
   top1000: { label: 'Top 1000 U.S.', sourceKey: 'top1000', limit: 1000 },
 };
 
+function cacheDuration(environmentValue, fallback) {
+  const minutes = Number(environmentValue);
+  return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 * 1000 : fallback;
+}
+
 function chunk(items, size) {
   const chunks = [];
   for (let index = 0; index < items.length; index += size) {
@@ -33,8 +38,8 @@ function createMarketDataService({
   apiKey = process.env.FMP_API_KEY,
   fetchImpl = global.fetch,
   now = () => Date.now(),
-  cacheTtlMs = DEFAULT_CACHE_TTL_MS,
-  staleTtlMs = DEFAULT_STALE_TTL_MS,
+  cacheTtlMs = cacheDuration(process.env.MARKET_CACHE_MINUTES, DEFAULT_CACHE_TTL_MS),
+  staleTtlMs = cacheDuration(process.env.MARKET_STALE_MINUTES, DEFAULT_STALE_TTL_MS),
 } = {}) {
   if (typeof fetchImpl !== 'function') {
     throw new Error('A fetch implementation is required.');

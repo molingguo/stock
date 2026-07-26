@@ -1,70 +1,58 @@
-# Getting Started with Create React App
+# Northstar Markets
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A responsive U.S. stock explorer with live S&P 500 constituents and market-cap-ranked Top 500 and Top 1000 views.
 
-## Available Scripts
+## Data architecture
 
-In the project directory, you can run:
+The React app calls only the local `/api/stocks` endpoint. The Node/Express server keeps the Financial Modeling Prep (FMP) key private and uses FMP's live constituent, company screener, and batch quote endpoints.
 
-### `npm start`
+The server is intentionally conservative with provider usage:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- S&P 500 data uses one constituent request plus quote batches of at most 200 symbols.
+- Top 500 and Top 1000 use one shared Top 1000 cache, so switching between them does not refetch the provider.
+- Successful responses are cached in memory for 15 minutes by default.
+- Concurrent requests for the same universe share one in-flight provider request.
+- Quote batches run sequentially to avoid request bursts.
+- Cached data can be served for up to 24 hours if FMP is unavailable or rate limiting.
+- The browser also keeps each universe response for 60 seconds.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+This is a good default for a single application instance. For a scaled deployment, replace the in-memory cache with Redis or another shared cache so all instances reuse the same provider response.
 
-### `npm test`
+## Setup
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Use Node.js 20.19 or newer and create an FMP API key. Endpoint availability depends on the FMP plan attached to that key.
 
-### `npm run build`
+```bash
+cp .env.example .env
+# Add your FMP_API_KEY to .env
+npm install
+npm start
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+`npm start` runs the API at `http://localhost:3001` and the React development app at `http://localhost:3000`.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Configuration
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+| Variable | Default | Purpose |
+| --- | ---: | --- |
+| `FMP_API_KEY` | required | Server-only FMP credential |
+| `MARKET_CACHE_MINUTES` | `15` | Fresh provider-response lifetime |
+| `MARKET_STALE_MINUTES` | `1440` | Maximum stale fallback lifetime |
+| `PORT` | `3001` | API/production server port |
 
-### `npm run eject`
+Do not prefix the API key with `REACT_APP_`; doing so would expose it in the browser bundle.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Commands
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm start          # API and React development servers
+npm test           # React and server tests
+npm run build      # Production Vite build
+npm run serve      # Serve the API and production build
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## API
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+`GET /api/stocks?universe=sp500|top500|top1000`
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Responses include normalized stock rows plus `asOf`, `refreshAfter`, and `cacheStatus` metadata. Quotes may be delayed and are intended for research, not investment advice.

@@ -1,5 +1,8 @@
 import React from 'react';
-import { DataGrid } from '@mui/x-data-grid';
+
+const DataGrid = React.lazy(() =>
+  import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid }))
+);
 
 const CLIENT_CACHE_TTL_MS = 60_000;
 const responseCache = new Map();
@@ -351,18 +354,20 @@ function StockList() {
               </div>
             ) : (
               <div className="desktop-grid" data-testid="desktop-stock-grid">
-                <DataGrid
-                  rows={filteredStocks}
-                  columns={columns}
-                  getRowId={(row) => row.symbol}
-                  disableRowSelectionOnClick
-                  rowHeight={68}
-                  columnHeaderHeight={52}
-                  initialState={{ pagination: { paginationModel: { pageSize: 25, page: 0 } } }}
-                  pageSizeOptions={[10, 25, 50, 100]}
-                  pagination
-                  sx={{ border: 0 }}
-                />
+                <React.Suspense fallback={<LoadingState />}>
+                  <DataGrid
+                    rows={filteredStocks}
+                    columns={columns}
+                    getRowId={(row) => row.symbol}
+                    disableRowSelectionOnClick
+                    rowHeight={68}
+                    columnHeaderHeight={52}
+                    initialState={{ pagination: { paginationModel: { pageSize: 25, page: 0 } } }}
+                    pageSizeOptions={[10, 25, 50, 100]}
+                    pagination
+                    sx={{ border: 0 }}
+                  />
+                </React.Suspense>
               </div>
             )}
           </>

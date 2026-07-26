@@ -2,7 +2,7 @@ const { spawn } = require('node:child_process');
 
 const processes = [
   spawn(process.execPath, ['server/index.js'], { stdio: 'inherit', env: process.env }),
-  spawn(process.execPath, ['node_modules/react-scripts/bin/react-scripts.js', 'start'], {
+  spawn(process.execPath, ['node_modules/vite/bin/vite.js'], {
     stdio: 'inherit',
     env: process.env,
   }),

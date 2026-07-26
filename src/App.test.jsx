@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import App from './App';
 
 const stock = {
@@ -13,7 +14,7 @@ const stock = {
 };
 
 test('loads, filters, and switches stock universes', async () => {
-  global.fetch = jest.fn(async (url) => ({
+  global.fetch = vi.fn(async (url) => ({
     ok: true,
     json: async () => ({
       universe: url.includes('top1000') ? 'top1000' : 'sp500',
