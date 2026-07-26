@@ -84,7 +84,9 @@ test('loads, filters, and switches stock universes', async () => {
   fireEvent.keyDown(screen.getByRole('dialog', { name: 'AAPL chart' }), { key: 'Escape' });
   expect(screen.queryByRole('dialog', { name: 'AAPL chart' })).not.toBeInTheDocument();
   expect(screen.getByText('Strong Buy')).toBeInTheDocument();
-  expect(screen.getAllByLabelText('Piotroski F-score 8 out of 9').length).toBeGreaterThan(0);
+  expect(screen.getAllByRole('link', { name: 'View AAPL Piotroski F-score 8 out of 9 details' })[0]).toHaveAttribute(
+    'href', 'https://stockanalysis.com/stocks/aapl/statistics/'
+  );
   expect(screen.getByText('2 SEC F-scores (2025)')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
 

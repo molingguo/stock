@@ -149,6 +149,11 @@ function zacksDetailUrl(symbol) {
   return `https://www.zacks.com/stock/quote/${encodeURIComponent(String(symbol || '').trim().toUpperCase())}`;
 }
 
+function piotroskiDetailUrl(symbol) {
+  const stockAnalysisSymbol = String(symbol || '').trim().toLowerCase();
+  return `https://stockanalysis.com/stocks/${encodeURIComponent(stockAnalysisSymbol)}/statistics/`;
+}
+
 function tradingViewSymbol(stock) {
   const exchange = String(stock?.exchange || '').trim().toUpperCase();
   const exchangePrefix = exchange.includes('NASDAQ') || exchange === 'NSDQ'
@@ -439,20 +444,23 @@ function ZacksRank({ rank, text, symbol }) {
   );
 }
 
-function PiotroskiScore({ score }) {
+function PiotroskiScore({ score, symbol }) {
   if (!Number.isInteger(score)) {
     return <span className="f-score unavailable" aria-label="Piotroski F-score unavailable">—</span>;
   }
 
   const tone = score >= 7 ? 'strong' : score >= 4 ? 'neutral' : 'weak';
   return (
-    <span
-      className={`f-score ${tone}`}
-      aria-label={`Piotroski F-score ${score} out of 9`}
+    <a
+      className={`f-score f-score-link ${tone}`}
+      href={piotroskiDetailUrl(symbol)}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`View ${symbol} Piotroski F-score ${score} out of 9 details`}
       title="SEC-derived financial strength score: 0 is weakest and 9 is strongest"
     >
       <strong>{score}</strong><span>/9</span>
-    </span>
+    </a>
   );
 }
 
@@ -498,7 +506,7 @@ function StockCard({ stock, rank, isEtf, onOpenChart }) {
         <dl>
           <div><dt>{isEtf ? 'Fund assets' : 'Market cap'}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
           <div><dt>{isEtf ? 'Category' : 'Sector'}</dt><dd>{stock.sector || 'Other'}</dd></div>
-          {!isEtf && <div><dt>F-score</dt><dd><PiotroskiScore score={stock.piotroskiScore} /></dd></div>}
+          {!isEtf && <div><dt>F-score</dt><dd><PiotroskiScore score={stock.piotroskiScore} symbol={stock.symbol} /></dd></div>}
           <div className="stock-card__range">
             <dt>52-week range</dt>
             <dd><YearRange low={stock.yearLow} high={stock.yearHigh} price={stock.price} /></dd>
@@ -674,7 +682,7 @@ function StockList() {
       width: 104,
       type: 'number',
       cellClassName: 'align-center-cell',
-      renderCell: ({ value }) => <PiotroskiScore score={value} />,
+      renderCell: ({ row, value }) => <PiotroskiScore score={value} symbol={row.symbol} />,
     }] : []),
     { field: 'marketCap', headerName: isEtfUniverse ? 'Fund assets' : 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
     { field: 'sector', headerName: isEtfUniverse ? 'Category' : 'Sector', minWidth: 155, flex: 0.8 },

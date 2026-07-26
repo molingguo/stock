@@ -197,6 +197,9 @@
 .f-score { width: 48px; padding: 5px 7px; border-radius: 999px; display: inline-flex; align-items: baseline; justify-content: center; gap: 1px; font-size: 10px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .f-score strong { font-size: 12px; }
 .f-score span { opacity: 0.72; }
+.f-score-link { position: relative; z-index: 2; text-decoration: none; cursor: pointer; }
+.f-score-link:hover { filter: brightness(0.95); }
+.f-score-link:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: 2px; }
 .f-score.strong { color: #fff; background: #176045; }
 .f-score.neutral { color: #765d16; background: #fff3cf; }
 .f-score.weak { color: #913939; background: #fbe6e4; }
