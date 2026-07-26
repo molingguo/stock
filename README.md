@@ -63,7 +63,12 @@ npm start          # API and React development servers
 npm test           # React and server tests
 npm run build      # Production Vite build
 npm run serve      # Serve the API and production build
+npm run build:amplify # Build the Amplify Hosting Compute artifact
 ```
+
+## Deployment
+
+The repository includes an AWS Amplify Hosting Compute deployment for the Vite frontend and Express API. Complete the console configuration and production verification in the [Amplify deployment guide](docs/amplify-deployment-guide.md).
 
 ## API
 
