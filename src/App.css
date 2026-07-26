@@ -149,18 +149,19 @@
 .MuiDataGrid-columnHeaders { background: #fff !important; border-bottom: 1px solid var(--line) !important; }
 .MuiDataGrid-columnHeaderTitle { color: #78857f; font-size: 10px; font-weight: 800 !important; letter-spacing: 0.8px; text-transform: uppercase; }
 .MuiDataGrid-cell { border-color: #edf1ee !important; font-size: 13px; }
+.MuiDataGrid-cell.align-center-cell { display: flex !important; align-items: center !important; line-height: normal !important; }
 .MuiDataGrid-row:hover { background: #f7faf7 !important; }
 .MuiDataGrid-footerContainer { border-color: var(--line) !important; }
 .company-cell { min-width: 0; display: flex; align-items: center; gap: 12px; }
 .company-cell > span:last-child { min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
 .company-cell strong { font-size: 13px; }
 .company-cell small { display: block; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
-.ticker-avatar { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #edf3ef; color: var(--forest); border: 1px solid #e0e9e3; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; }
-.change-pill { display: inline-flex; justify-content: center; min-width: 68px; padding: 5px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+.ticker-avatar { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #edf3ef; color: var(--forest); border: 1px solid #e0e9e3; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; line-height: 1; }
+.change-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 68px; padding: 5px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 1; }
 .change-pill.positive { color: #18704f; background: #e5f6ed; }
 .change-pill.negative { color: #a43838; background: #fbeaea; }
 .change-pill.neutral { color: #6d7874; background: #eef1ef; }
-.zacks-rank { display: inline-flex; align-items: center; gap: 5px; min-width: 116px; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.zacks-rank { display: inline-flex; align-items: center; gap: 5px; min-width: 116px; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1; white-space: nowrap; }
 .zacks-rank strong { font: inherit; font-weight: 900; }
 .zacks-rank.strong-buy { color: #fff; background: #176045; }
 .zacks-rank.buy { color: #176045; background: #dff3e9; }

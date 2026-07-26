@@ -259,6 +259,7 @@ function StockList() {
       headerName: 'Company',
       minWidth: 220,
       flex: 1.2,
+      cellClassName: 'align-center-cell',
       renderCell: ({ row }) => (
         <div className="company-cell">
           <span className="ticker-avatar">{row.symbol.slice(0, 1)}</span>
@@ -272,6 +273,7 @@ function StockList() {
       headerName: 'Day change',
       width: 132,
       type: 'number',
+      cellClassName: 'align-center-cell',
       renderCell: ({ value }) => <ChangeValue value={value} />,
     },
     {
@@ -279,6 +281,7 @@ function StockList() {
       headerName: 'Zacks rank',
       width: 154,
       type: 'number',
+      cellClassName: 'align-center-cell',
       renderCell: ({ row }) => <ZacksRank rank={row.zacksRank} text={row.zacksRankText} />,
     },
     { field: 'marketCap', headerName: 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
