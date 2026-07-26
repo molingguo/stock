@@ -1,4 +1,14 @@
 import React from 'react';
+import { zhCN as muiZhCN } from '@mui/x-data-grid/locales';
+import {
+  CHINESE_LOCALE,
+  DEFAULT_LOCALE,
+  createTranslator,
+  localeFromPathname,
+  pathForLocale,
+  translateMarketTerm,
+  translateUniverseLabel,
+} from './i18n';
 
 const DataGrid = React.lazy(() =>
   import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid }))
@@ -11,6 +21,43 @@ const MAX_ZACKS_REPORTS = 8;
 const MAX_FAVORITES = 100;
 const responseCache = new Map();
 const pendingRequests = new Map();
+
+const I18nContext = React.createContext({
+  locale: DEFAULT_LOCALE,
+  t: createTranslator(DEFAULT_LOCALE),
+});
+
+function useI18n() {
+  return React.useContext(I18nContext);
+}
+
+function useUrlLocale() {
+  const [locale, setLocale] = React.useState(
+    () => typeof window === 'undefined' ? DEFAULT_LOCALE : localeFromPathname(window.location.pathname)
+  );
+
+  React.useEffect(() => {
+    document.documentElement.lang = locale;
+    const currentPath = window.location.pathname;
+    if (/^\/zh_cn(?:\/|$)/i.test(currentPath)) {
+      window.history.replaceState(window.history.state, '', `${pathForLocale(CHINESE_LOCALE, currentPath)}${window.location.search}${window.location.hash}`);
+    }
+  }, [locale]);
+
+  React.useEffect(() => {
+    const syncLocale = () => setLocale(localeFromPathname(window.location.pathname));
+    window.addEventListener('popstate', syncLocale);
+    return () => window.removeEventListener('popstate', syncLocale);
+  }, []);
+
+  const changeLocale = React.useCallback((nextLocale) => {
+    const nextPath = pathForLocale(nextLocale, window.location.pathname);
+    window.history.pushState({ ...window.history.state, locale: nextLocale }, '', `${nextPath}${window.location.search}${window.location.hash}`);
+    setLocale(nextLocale);
+  }, []);
+
+  return [locale, changeLocale];
+}
 
 const universeOptions = [
   { value: 'sp500', label: 'S&P 500', description: 'Index constituents' },
@@ -33,8 +80,8 @@ const compactCurrencyFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 1,
 });
 
-const numberFormatter = new Intl.NumberFormat('en-US', { notation: 'compact' });
 const indexLevelFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+const zhDataGridLocaleText = muiZhCN.components.MuiDataGrid.defaultProps.localeText;
 
 function formatCurrency(value) {
   return Number.isFinite(value) ? currencyFormatter.format(value) : '—';
@@ -48,10 +95,10 @@ function formatPercent(value) {
   return Number.isFinite(value) ? `${value >= 0 ? '+' : ''}${value.toFixed(2)}%` : '—';
 }
 
-function indexCardDetail(index) {
+function indexCardDetail(index, t) {
   return Number.isFinite(index?.price)
-    ? `${indexLevelFormatter.format(index.price)} index level`
-    : 'Index quote unavailable';
+    ? t('summary.indexLevel', { value: indexLevelFormatter.format(index.price) })
+    : t('summary.indexUnavailable');
 }
 
 function stockRank(stock, allStocks) {
@@ -98,13 +145,14 @@ function escapeCsvCell(value) {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-export function createStockCsv(rows, { isEtf = false, allStocks = rows } = {}) {
+export function createStockCsv(rows, { isEtf = false, allStocks = rows, locale = DEFAULT_LOCALE } = {}) {
+  const t = createTranslator(locale);
   const headers = [
-    'Rank', isEtf ? 'Fund' : 'Ticker', 'Name', 'Price', 'Day change (%)',
-    'Zacks rank', 'Zacks rating', isEtf ? 'Fund assets' : 'Market cap',
-    isEtf ? 'Category' : 'Sector',
-    ...(!isEtf ? ['Piotroski F-score', 'P/E'] : []),
-    '52-week low', '52-week high', '52-week position (%)',
+    t('csv.rank'), isEtf ? t('csv.fund') : t('csv.ticker'), t('csv.name'), t('csv.price'), t('csv.dayChange'),
+    t('csv.zacksRank'), t('csv.zacksRating'), isEtf ? t('csv.fundAssets') : t('csv.marketCap'),
+    isEtf ? t('csv.category') : t('csv.sector'),
+    ...(!isEtf ? [t('csv.fScore'), t('csv.pe')] : []),
+    t('csv.yearLow'), t('csv.yearHigh'), t('csv.yearPosition'),
   ];
   const values = rows.map((stock) => [
     stockRank(stock, allStocks), stock.symbol, stock.name, stock.price, stock.changePercentage,
@@ -127,22 +175,23 @@ function downloadCsv(contents, filename) {
   URL.revokeObjectURL(url);
 }
 
-function formatUpdatedAt(value) {
-  if (!value) return 'Waiting for market data';
-  return `Updated ${new Intl.DateTimeFormat('en-US', {
+function formatUpdatedAt(value, locale, t) {
+  if (!value) return t('panel.waiting');
+  const date = new Intl.DateTimeFormat(locale, {
     hour: 'numeric',
     minute: '2-digit',
     month: 'short',
     day: 'numeric',
-  }).format(new Date(value))}`;
+  }).format(new Date(value));
+  return t('panel.updated', { date });
 }
 
-function formatReportDate(value) {
+function formatReportDate(value, locale = DEFAULT_LOCALE) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return '';
   const [year, month, day] = value.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -330,18 +379,19 @@ function TickerAvatar({ symbol, logoUrl }) {
 }
 
 function YearRange({ low, high, price }) {
+  const { t } = useI18n();
   const hasRange = Number.isFinite(low) && Number.isFinite(high) && high > low;
   if (!hasRange) return <span className="year-range unavailable">—</span>;
 
   const rawPosition = Number.isFinite(price) ? ((price - low) / (high - low)) * 100 : null;
   const markerPosition = Number.isFinite(rawPosition) ? Math.min(97, Math.max(3, rawPosition)) : null;
-  const currentPrice = Number.isFinite(price) ? `; current price ${formatCurrency(price)}` : '';
+  const currentPrice = Number.isFinite(price) ? t('range.current', { price: formatCurrency(price) }) : '';
 
   return (
     <span
       className="year-range"
       role="img"
-      aria-label={`52-week range from ${formatCurrency(low)} to ${formatCurrency(high)}${currentPrice}`}
+      aria-label={t('range.label', { low: formatCurrency(low), high: formatCurrency(high), current: currentPrice })}
     >
       <span className="year-range__track">
         {markerPosition !== null && <span className="year-range__marker" style={{ left: `${markerPosition}%` }} />}
@@ -397,6 +447,7 @@ function TradingViewChart({ stock }) {
 }
 
 function StockChartDialog({ stock, onClose }) {
+  const { t } = useI18n();
   const dialogRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -437,8 +488,8 @@ function StockChartDialog({ stock, onClose }) {
           <div className="stock-chart-company">
             <TickerAvatar symbol={stock.symbol} logoUrl={stock.logoUrl} />
             <div>
-              <span className="eyebrow">INTERACTIVE DAILY CHART</span>
-              <h2 id="stock-chart-title">{stock.symbol} chart</h2>
+              <span className="eyebrow">{t('chart.eyebrow')}</span>
+              <h2 id="stock-chart-title">{t('chart.title', { symbol: stock.symbol })}</h2>
               <p>{stock.name}</p>
             </div>
           </div>
@@ -447,15 +498,15 @@ function StockChartDialog({ stock, onClose }) {
             <ChangeValue value={stock.changePercentage} />
           </div>
           <a className="stock-chart-yahoo" href={stockDetailUrl(stock.symbol)} target="_blank" rel="noreferrer">
-            View on Yahoo Finance
+            {t('chart.yahoo')}
           </a>
-          <button className="stock-chart-close" type="button" onClick={requestClose} aria-label="Close chart">×</button>
+          <button className="stock-chart-close" type="button" onClick={requestClose} aria-label={t('chart.close')}>×</button>
         </header>
         <div className="stock-chart-body">
           <TradingViewChart stock={stock} />
         </div>
         <p className="stock-chart-attribution">
-          <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Interactive chart by TradingView</a>
+          <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">{t('chart.attribution')}</a>
         </p>
       </div>
     </dialog>
@@ -463,25 +514,29 @@ function StockChartDialog({ stock, onClose }) {
 }
 
 function ZacksRank({ rank, text, symbol }) {
+  const { t } = useI18n();
   const isRated = Number.isInteger(rank);
   const tone = isRated ? ['strong-buy', 'buy', 'hold', 'sell', 'strong-sell'][rank - 1] : 'unavailable';
-  const label = isRated ? `#${rank} ${text}` : 'Not rated';
+  const rankKey = ['rank.strongBuy', 'rank.buy', 'rank.hold', 'rank.sell', 'rank.strongSell'][rank - 1];
+  const localizedText = isRated ? t(rankKey) : '';
+  const label = isRated ? `#${rank} ${localizedText}` : t('rank.unrated');
   return (
     <a
       className={`zacks-rank zacks-rank-link ${tone}`}
       href={zacksDetailUrl(symbol)}
       target="_blank"
       rel="noreferrer"
-      aria-label={`View ${symbol} on Zacks: ${label}`}
+      aria-label={t('rank.viewDetails', { symbol, label })}
     >
-      {isRated ? <><strong>#{rank}</strong>{text}</> : 'Not rated'}
+      {isRated ? <><strong>#{rank}</strong>{localizedText || text}</> : t('rank.unrated')}
     </a>
   );
 }
 
 function PiotroskiScore({ score, symbol }) {
+  const { t } = useI18n();
   if (!Number.isInteger(score)) {
-    return <span className="f-score unavailable" aria-label="Piotroski F-score unavailable">—</span>;
+    return <span className="f-score unavailable" aria-label={t('score.unavailable')}>—</span>;
   }
 
   const tone = score >= 7 ? 'strong' : score >= 4 ? 'neutral' : 'weak';
@@ -491,8 +546,8 @@ function PiotroskiScore({ score, symbol }) {
       href={piotroskiDetailUrl(symbol)}
       target="_blank"
       rel="noreferrer"
-      aria-label={`View ${symbol} Piotroski F-score ${score} out of 9 details`}
-      title="SEC-derived financial strength score: 0 is weakest and 9 is strongest"
+      aria-label={t('score.details', { symbol, score })}
+      title={t('score.title')}
     >
       <strong>{score}</strong><span>/9</span>
     </a>
@@ -500,7 +555,8 @@ function PiotroskiScore({ score, symbol }) {
 }
 
 function FavoriteButton({ symbol, isFavorite, onToggle, disabled = false }) {
-  const action = isFavorite ? 'Remove' : 'Add';
+  const { t } = useI18n();
+  const label = t(isFavorite ? 'favorite.remove' : 'favorite.add', { symbol });
   return (
     <button
       className={isFavorite ? 'favorite-button is-favorite' : 'favorite-button'}
@@ -511,8 +567,8 @@ function FavoriteButton({ symbol, isFavorite, onToggle, disabled = false }) {
       }}
       disabled={disabled}
       aria-pressed={isFavorite}
-      aria-label={`${action} ${symbol} ${isFavorite ? 'from' : 'to'} favorites`}
-      title={disabled ? `Favorites are limited to ${MAX_FAVORITES} stocks` : `${action} ${symbol} ${isFavorite ? 'from' : 'to'} favorites`}
+      aria-label={label}
+      title={disabled ? t('favorite.limit', { count: MAX_FAVORITES }) : label}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="m12 3.7 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 16.72 6.9 19.4l.97-5.68L3.75 9.7l5.7-.83L12 3.7Z" />
@@ -532,13 +588,14 @@ function StatCard({ eyebrow, value, detail, tone = 'default' }) {
 }
 
 function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavorite, favoriteLimitReached }) {
+  const { locale, t } = useI18n();
   return (
     <article className="stock-card">
       <button
         className="stock-card__chart-trigger"
         type="button"
         onClick={() => onOpenChart(stock)}
-        aria-label={`Open ${stock.symbol} chart`}
+        aria-label={t('chart.open', { symbol: stock.symbol })}
       />
         <div className="stock-card__lead">
           <span className="rank">{rank}</span>
@@ -553,7 +610,7 @@ function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavori
             className="stock-card__company-link"
             type="button"
             onClick={() => onOpenChart(stock)}
-            aria-label={`Open ${stock.symbol} chart from company name`}
+            aria-label={t('chart.openFromName', { symbol: stock.symbol })}
           >
             <strong>{stock.symbol}</strong>
             <span>{stock.name}</span>
@@ -567,11 +624,11 @@ function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavori
           </div>
         </div>
         <dl>
-          <div><dt>{isEtf ? 'Fund assets' : 'Market cap'}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
-          <div><dt>{isEtf ? 'Category' : 'Sector'}</dt><dd>{stock.sector || 'Other'}</dd></div>
-          {!isEtf && <div><dt>F-score</dt><dd><PiotroskiScore score={stock.piotroskiScore} symbol={stock.symbol} /></dd></div>}
+          <div><dt>{t(isEtf ? 'column.fundAssets' : 'column.marketCap')}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
+          <div><dt>{t(isEtf ? 'column.category' : 'column.sector')}</dt><dd>{translateMarketTerm(stock.sector || 'Other', locale)}</dd></div>
+          {!isEtf && <div><dt>{t('card.fScore')}</dt><dd><PiotroskiScore score={stock.piotroskiScore} symbol={stock.symbol} /></dd></div>}
           <div className="stock-card__range">
-            <dt>52-week range</dt>
+            <dt>{t('column.yearRange')}</dt>
             <dd><YearRange low={stock.yearLow} high={stock.yearHigh} price={stock.price} /></dd>
           </div>
         </dl>
@@ -580,11 +637,12 @@ function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavori
 }
 
 function LoadingState() {
+  const { t } = useI18n();
   return (
     <div className="loading-state" role="status" aria-live="polite">
       <div className="loading-copy">
         <span className="loading-orbit" />
-        <div><strong>Building your market view</strong><span>Fetching and ranking the latest securities…</span></div>
+        <div><strong>{t('loading.title')}</strong><span>{t('loading.detail')}</span></div>
       </div>
       <div className="skeleton-table" aria-hidden="true">
         {Array.from({ length: 7 }, (_, index) => <span key={index} />)}
@@ -610,6 +668,34 @@ function useMediaLayout(query) {
 }
 
 function StockList() {
+  const [locale, changeLocale] = useUrlLocale();
+  const t = React.useMemo(() => createTranslator(locale), [locale]);
+  const i18n = React.useMemo(() => ({ locale, t }), [locale, t]);
+  const numberFormatter = React.useMemo(() => new Intl.NumberFormat(locale, { notation: 'compact' }), [locale]);
+
+  React.useEffect(() => {
+    document.title = t('meta.title');
+    document.querySelector('meta[name="description"]')?.setAttribute('content', t('meta.description'));
+
+    const setLocalizedLink = (rel, hrefLang, path) => {
+      const selector = hrefLang
+        ? `link[rel="${rel}"][hreflang="${hrefLang}"]`
+        : `link[rel="${rel}"]:not([hreflang])`;
+      let link = document.head.querySelector(selector);
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = rel;
+        if (hrefLang) link.hreflang = hrefLang;
+        document.head.append(link);
+      }
+      link.href = new URL(path, window.location.origin).href;
+    };
+
+    setLocalizedLink('canonical', '', pathForLocale(locale, window.location.pathname));
+    setLocalizedLink('alternate', 'en', pathForLocale(DEFAULT_LOCALE, window.location.pathname));
+    setLocalizedLink('alternate', CHINESE_LOCALE, pathForLocale(CHINESE_LOCALE, window.location.pathname));
+    setLocalizedLink('alternate', 'x-default', pathForLocale(DEFAULT_LOCALE, window.location.pathname));
+  }, [locale, t]);
   const [universe, setUniverse] = React.useState('sp500');
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -738,7 +824,7 @@ function StockList() {
     },
     {
       field: 'symbol',
-      headerName: isEtfUniverse ? 'Fund' : 'Company',
+      headerName: t(isEtfUniverse ? 'column.fund' : 'column.company'),
       minWidth: 180,
       flex: 1.2,
       cellClassName: 'align-center-cell',
@@ -754,7 +840,7 @@ function StockList() {
             className="company-cell__chart stock-detail-button"
             type="button"
             onClick={() => openStockChart(row)}
-            aria-label={`Open ${row.symbol} chart from company name`}
+            aria-label={t('chart.openFromName', { symbol: row.symbol })}
           >
             <TickerAvatar symbol={row.symbol} logoUrl={row.logoUrl} />
             <span><strong>{row.symbol}</strong><small>{row.name}</small></span>
@@ -762,10 +848,10 @@ function StockList() {
         </div>
       ),
     },
-    { field: 'price', headerName: 'Price', width: 100, type: 'number', valueFormatter: formatCurrency },
+    { field: 'price', headerName: t('column.price'), width: 100, type: 'number', valueFormatter: formatCurrency },
     {
       field: 'changePercentage',
-      headerName: 'Day change',
+      headerName: t('column.dayChange'),
       width: 105,
       type: 'number',
       cellClassName: 'align-center-cell',
@@ -773,7 +859,7 @@ function StockList() {
     },
     {
       field: 'zacksRank',
-      headerName: 'Zacks rank',
+      headerName: t('column.zacksRank'),
       width: 154,
       type: 'number',
       cellClassName: 'align-center-cell',
@@ -781,25 +867,25 @@ function StockList() {
     },
     ...(!isEtfUniverse ? [{
       field: 'piotroskiScore',
-      headerName: 'F-score',
-      description: 'Piotroski financial strength score calculated from SEC filings (0 weakest, 9 strongest)',
+      headerName: t('column.fScore'),
+      description: t('column.fScoreDescription'),
       width: 104,
       type: 'number',
       cellClassName: 'align-center-cell',
       renderCell: ({ row, value }) => <PiotroskiScore score={value} symbol={row.symbol} />,
     }] : []),
-    { field: 'marketCap', headerName: isEtfUniverse ? 'Fund assets' : 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
-    { field: 'sector', headerName: isEtfUniverse ? 'Category' : 'Sector', minWidth: 155, flex: 0.8 },
-    ...(!isEtfUniverse ? [{ field: 'pe', headerName: 'P/E', width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' }] : []),
+    { field: 'marketCap', headerName: t(isEtfUniverse ? 'column.fundAssets' : 'column.marketCap'), width: 135, type: 'number', valueFormatter: formatCompactCurrency },
+    { field: 'sector', headerName: t(isEtfUniverse ? 'column.category' : 'column.sector'), minWidth: 155, flex: 0.8, valueFormatter: (value) => translateMarketTerm(value, locale) },
+    ...(!isEtfUniverse ? [{ field: 'pe', headerName: t('column.pe'), width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' }] : []),
     {
       field: 'yearRangePosition',
-      headerName: '52-week range',
+      headerName: t('column.yearRange'),
       width: 178,
       type: 'number',
       valueGetter: (_value, row) => yearRangePosition(row),
       renderCell: ({ row }) => <YearRange low={row.yearLow} high={row.yearHigh} price={row.price} />,
     },
-  ], [favoriteLimitReached, favoriteSet, isEtfUniverse, openStockChart, stocks, toggleFavorite]);
+  ], [favoriteLimitReached, favoriteSet, isEtfUniverse, locale, openStockChart, stocks, t, toggleFavorite]);
 
   const selectUniverse = (nextUniverse) => {
     if (nextUniverse === universe) return;
@@ -814,29 +900,41 @@ function StockList() {
 
   const exportCurrentTable = () => {
     const orderedStocks = sortStocksForExport(filteredStocks, sortModel, stocks);
-    const csv = createStockCsv(orderedStocks, { isEtf: isEtfUniverse, allStocks: stocks });
+    const csv = createStockCsv(orderedStocks, { isEtf: isEtfUniverse, allStocks: stocks, locale });
     const universeName = universe.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
     const date = String(data?.asOf || new Date().toISOString()).slice(0, 10);
     downloadCsv(csv, `northstar-${universeName}-${date}.csv`);
   };
 
   return (
+    <I18nContext.Provider value={i18n}>
     <main className="dashboard-shell">
       <header className="site-header">
-        <a className="brand" href="/" aria-label="Northstar Markets home">
+        <a className="brand" href={pathForLocale(locale)} aria-label={t('brand.home')}>
           <BrandMark />
           <span><strong>Northstar</strong><small>MARKETS</small></span>
         </a>
-        <div className="market-status"><span /> Market data connected</div>
+        <div className="header-actions">
+          <div className="market-status"><span /> {t('status.connected')}</div>
+          <button
+            className="language-toggle"
+            type="button"
+            onClick={() => changeLocale(locale === CHINESE_LOCALE ? DEFAULT_LOCALE : CHINESE_LOCALE)}
+            aria-label={t('language.switchLabel')}
+          >
+            <span aria-hidden="true">文</span>
+            {t('language.switch')}
+          </button>
+        </div>
       </header>
 
       <section className="hero">
         <div className="hero__copy">
-          <span className="eyebrow">U.S. EQUITY EXPLORER</span>
-          <h1>See the market.<br /><em>Find the signal.</em></h1>
-          <p>Explore leading U.S. stocks, popular ETFs, and Zacks’ weekly picks with current prices, rankings, and research signals in one focused view.</p>
+          <span className="eyebrow">{t('hero.eyebrow')}</span>
+          <h1>{t('hero.line1')}<br /><em>{t('hero.line2')}</em></h1>
+          <p>{t('hero.description')}</p>
         </div>
-        <div className="universe-picker" aria-label="Market universe">
+        <div className="universe-picker" aria-label={t('summary.label')}>
           {universeOptions.map((option) => (
             <button
               className={universe === option.value ? 'active' : ''}
@@ -844,56 +942,67 @@ function StockList() {
               onClick={() => selectUniverse(option.value)}
               type="button"
             >
-              <strong>{option.label}</strong>
+              <strong>{t(`universe.${option.value}`)}</strong>
               <span>{option.value === 'favorites' && favoriteSymbols.length
-                ? `${favoriteSymbols.length} saved locally`
-                : option.description}</span>
+                ? t('universe.favoritesCount', { count: favoriteSymbols.length })
+                : t(`universe.${option.value}Description`)}</span>
             </button>
           ))}
         </div>
       </section>
 
-      <section className="stats-grid" aria-label="Market summary">
+      <section className="stats-grid" aria-label={t('summary.label')}>
         <StatCard
-          eyebrow="S&P 500 today"
+          eyebrow={t('summary.sp500Today')}
           value={formatPercent(sp500Index?.changePercentage)}
-          detail={indexCardDetail(sp500Index)}
+          detail={indexCardDetail(sp500Index, t)}
           tone={sp500Index?.changePercentage > 0 ? 'positive' : sp500Index?.changePercentage < 0 ? 'negative' : 'default'}
         />
         <StatCard
-          eyebrow="Nasdaq Composite today"
+          eyebrow={t('summary.nasdaqToday')}
           value={formatPercent(nasdaqIndex?.changePercentage)}
-          detail={indexCardDetail(nasdaqIndex)}
+          detail={indexCardDetail(nasdaqIndex, t)}
           tone={nasdaqIndex?.changePercentage > 0 ? 'positive' : nasdaqIndex?.changePercentage < 0 ? 'negative' : 'default'}
         />
         <StatCard
-          eyebrow="Market breadth"
+          eyebrow={t('summary.breadth')}
           value={Number.isFinite(stats.breadthPercentage) ? `${stats.breadthPercentage.toFixed(0)}%` : '—'}
-          detail={`${stats.advancers} advancing · ${stats.decliners} declining in ${data?.label || 'selected universe'}`}
+          detail={t('summary.breadthDetail', {
+            advancers: stats.advancers,
+            decliners: stats.decliners,
+            universe: translateUniverseLabel(universe, data?.label || t('common.selectedUniverse'), locale),
+          })}
           tone={stats.advancers > stats.decliners ? 'positive' : stats.decliners > stats.advancers ? 'negative' : 'default'}
         />
-        <StatCard eyebrow="Zacks buy signals" value={stocks.length ? numberFormatter.format(stats.strongBuys + stats.buys) : '—'} detail={`${stats.strongBuys} Strong Buy · ${stats.buys} Buy`} tone="positive" />
+        <StatCard
+          eyebrow={t('summary.zacksSignals')}
+          value={stocks.length ? numberFormatter.format(stats.strongBuys + stats.buys) : '—'}
+          detail={t('summary.zacksDetail', { strongBuys: stats.strongBuys, buys: stats.buys })}
+          tone="positive"
+        />
       </section>
 
       <section className="market-panel">
         <div className="panel-heading">
           <div>
-            <span className="eyebrow">{isBestStocksUniverse ? 'WEEKLY ZACKS REPORT' : isFavoritesUniverse ? 'PERSONAL WATCHLIST' : 'MARKET DIRECTORY'}</span>
-            <h2>{data?.label || universeOptions.find((option) => option.value === universe)?.label}</h2>
+            <span className="eyebrow">{t(isBestStocksUniverse ? 'panel.weeklyReport' : isFavoritesUniverse ? 'panel.watchlist' : 'panel.directory')}</span>
+            <h2>{translateUniverseLabel(universe, data?.label || universeOptions.find((option) => option.value === universe)?.label, locale)}</h2>
             <p className="panel-metadata">
-              {isBestStocksUniverse && data?.reportDate && <span className="report-date">Report updated {formatReportDate(data.reportDate)}</span>}
-              <span>{formatUpdatedAt(data?.asOf)}</span>
-              <span>{data?.cacheStatus === 'stale' ? 'Showing cached data' : data?.reportCacheStatus === 'fallback' ? 'Verified report snapshot' : 'Provider cache active'}</span>
-              {isFavoritesUniverse && <span>Symbols saved only in this browser</span>}
-              <span>{numberFormatter.format(data?.zacksCoverage || 0)} Zacks rated</span>
+              {isBestStocksUniverse && data?.reportDate && <span className="report-date">{t('panel.reportUpdated', { date: formatReportDate(data.reportDate, locale) })}</span>}
+              <span>{formatUpdatedAt(data?.asOf, locale, t)}</span>
+              <span>{t(data?.cacheStatus === 'stale' ? 'panel.stale' : data?.reportCacheStatus === 'fallback' ? 'panel.reportSnapshot' : 'panel.cacheActive')}</span>
+              {isFavoritesUniverse && <span>{t('panel.localSymbols')}</span>}
+              <span>{t('panel.zacksRated', { count: numberFormatter.format(data?.zacksCoverage || 0) })}</span>
               {!isEtfUniverse && (
                 <span>
-                  {numberFormatter.format(data?.piotroskiCoverage || 0)} SEC F-scores
-                  {data?.piotroskiScoreYear ? ` (${data.piotroskiScoreYear})` : ''}
+                  {t('panel.secScores', {
+                    count: numberFormatter.format(data?.piotroskiCoverage || 0),
+                    year: data?.piotroskiScoreYear ? ` (${data.piotroskiScoreYear})` : '',
+                  })}
                 </span>
               )}
               {isBestStocksUniverse && (data?.resolvedReportUrl || data?.reportUrl) && (
-                <a href={data.resolvedReportUrl || data.reportUrl} target="_blank" rel="noreferrer">View source report</a>
+                <a href={data.resolvedReportUrl || data.reportUrl} target="_blank" rel="noreferrer">{t('panel.viewSource')}</a>
               )}
             </p>
           </div>
@@ -903,14 +1012,14 @@ function StockList() {
               type="button"
               onClick={exportCurrentTable}
               disabled={loading || !filteredStocks.length}
-              aria-label="Export to CSV"
+              aria-label={t('action.exportLabel')}
             >
               <ExportIcon />
-              <span>Export CSV</span>
+              <span>{t('action.export')}</span>
             </button>
             <button className="refresh-button" type="button" onClick={() => setRefreshVersion((version) => version + 1)} disabled={loading}>
               <RefreshIcon spinning={loading} />
-              <span>{loading ? 'Syncing' : 'Refresh'}</span>
+              <span>{t(loading ? 'action.syncing' : 'action.refresh')}</span>
             </button>
           </div>
         </div>
@@ -918,37 +1027,37 @@ function StockList() {
         <div className="toolbar">
           <label className="search-field">
             <SearchIcon />
-            <span className="sr-only">{isEtfUniverse ? 'Search funds' : 'Search companies'}</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={isEtfUniverse ? 'Search ticker or fund' : 'Search ticker or company'} />
+            <span className="sr-only">{t(isEtfUniverse ? 'filter.searchFunds' : 'filter.searchStocks')}</span>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t(isEtfUniverse ? 'filter.searchFunds' : 'filter.searchStocks')} />
           </label>
           <label className="sector-field">
-            <span>{isEtfUniverse ? 'Category' : 'Sector'}</span>
+            <span>{t(isEtfUniverse ? 'filter.category' : 'filter.sector')}</span>
             <select value={sector} onChange={(event) => setSector(event.target.value)}>
-              <option value="all">{isEtfUniverse ? 'All categories' : 'All sectors'}</option>
-              {sectors.map((sectorName) => <option value={sectorName} key={sectorName}>{sectorName}</option>)}
+              <option value="all">{t(isEtfUniverse ? 'filter.allCategories' : 'filter.allSectors')}</option>
+              {sectors.map((sectorName) => <option value={sectorName} key={sectorName}>{translateMarketTerm(sectorName, locale)}</option>)}
             </select>
           </label>
           <label className="sector-field rank-field">
-            <span>Zacks rank</span>
+            <span>{t('filter.zacksRank')}</span>
             <select value={zacksFilter} onChange={(event) => setZacksFilter(event.target.value)}>
-              <option value="all">All Zacks ranks</option>
-              <option value="buy-signals">#1–2 Buys</option>
-              <option value="1">#1 Strong Buy</option>
-              <option value="2">#2 Buy</option>
-              <option value="3">#3 Hold</option>
-              <option value="4">#4 Sell</option>
-              <option value="5">#5 Strong Sell</option>
-              <option value="unrated">Not rated</option>
+              <option value="all">{t('filter.allZacks')}</option>
+              <option value="buy-signals">{t('filter.buySignals')}</option>
+              <option value="1">{t('filter.rank1')}</option>
+              <option value="2">{t('filter.rank2')}</option>
+              <option value="3">{t('filter.rank3')}</option>
+              <option value="4">{t('filter.rank4')}</option>
+              <option value="5">{t('filter.rank5')}</option>
+              <option value="unrated">{t('filter.unrated')}</option>
             </select>
           </label>
-          <span className="result-count">{numberFormatter.format(filteredStocks.length)} results</span>
+          <span className="result-count">{t('filter.results', { count: numberFormatter.format(filteredStocks.length) })}</span>
         </div>
 
         {error ? (
           <div className="error-state" role="alert">
             <span>!</span>
-            <div><strong>Market data is unavailable</strong><p>{error}</p></div>
-            <button type="button" onClick={() => setRefreshVersion((version) => version + 1)}>Try again</button>
+            <div><strong>{t('error.title')}</strong><p>{locale === CHINESE_LOCALE ? t('error.detail') : error}</p></div>
+            <button type="button" onClick={() => setRefreshVersion((version) => version + 1)}>{t('error.retry')}</button>
           </div>
         ) : loading && !data ? (
           <LoadingState />
@@ -957,8 +1066,8 @@ function StockList() {
             {isFavoritesUniverse && !stocks.length ? (
               <div className="empty-favorites" role="status">
                 <span aria-hidden="true">☆</span>
-                <strong>No favorite stocks yet</strong>
-                <p>Open another market tab and select the star beside any ticker. Your symbols stay in this browser and return here with current cached quotes.</p>
+                <strong>{t('favorite.emptyTitle')}</strong>
+                <p>{t('favorite.emptyDescription')}</p>
               </div>
             ) : isMobile ? (
               <div className="mobile-list" data-testid="mobile-stock-list">
@@ -974,7 +1083,7 @@ function StockList() {
                     favoriteLimitReached={favoriteLimitReached}
                   />
                 ))}
-                {filteredStocks.length > 50 && <p className="mobile-limit">Showing the first 50 results. Use search or sector filters to narrow the list.</p>}
+                {filteredStocks.length > 50 && <p className="mobile-limit">{t('mobile.limit')}</p>}
               </div>
             ) : (
               <div className="desktop-grid" data-testid="desktop-stock-grid">
@@ -998,6 +1107,7 @@ function StockList() {
                     initialState={{ pagination: { paginationModel: { pageSize: 100, page: 0 } } }}
                     pageSizeOptions={[10, 25, 50, 100]}
                     pagination
+                    localeText={locale === CHINESE_LOCALE ? zhDataGridLocaleText : undefined}
                     sx={{ border: 0 }}
                   />
                 </React.Suspense>
@@ -1011,22 +1121,25 @@ function StockList() {
         <section className="report-history" aria-labelledby="report-history-title">
           <div className="report-history__heading">
             <div>
-              <span className="eyebrow">SAVED WEEKLY EDITIONS</span>
-              <h2 id="report-history-title">Previous 7 Best Stocks</h2>
-              <p>Reports previously viewed in this browser are kept by edition date without additional provider requests.</p>
+              <span className="eyebrow">{t('history.eyebrow')}</span>
+              <h2 id="report-history-title">{t('history.title')}</h2>
+              <p>{t('history.description')}</p>
             </div>
-            <span>{previousZacksReports.length} saved {previousZacksReports.length === 1 ? 'week' : 'weeks'}</span>
+            <span>{t('history.savedWeeks', {
+              count: numberFormatter.format(previousZacksReports.length),
+              unit: t(previousZacksReports.length === 1 ? 'history.week' : 'history.weeks'),
+            })}</span>
           </div>
 
           {previousZacksReports.length ? previousZacksReports.map((report) => (
             <article className="archived-report" key={report.reportDate}>
               <div className="archived-report__heading">
                 <div>
-                  <span className="eyebrow">WEEK OF</span>
-                  <h3>{formatReportDate(report.reportDate)}</h3>
+                  <span className="eyebrow">{t('history.weekOf')}</span>
+                  <h3>{formatReportDate(report.reportDate, locale)}</h3>
                 </div>
                 {(report.resolvedReportUrl || report.reportUrl) && (
-                  <a href={report.resolvedReportUrl || report.reportUrl} target="_blank" rel="noreferrer">View source report</a>
+                  <a href={report.resolvedReportUrl || report.reportUrl} target="_blank" rel="noreferrer">{t('panel.viewSource')}</a>
                 )}
               </div>
 
@@ -1063,6 +1176,7 @@ function StockList() {
                       rowHeight={68}
                       columnHeaderHeight={52}
                       hideFooter
+                      localeText={locale === CHINESE_LOCALE ? zhDataGridLocaleText : undefined}
                       sx={{ border: 0 }}
                     />
                   </React.Suspense>
@@ -1071,20 +1185,21 @@ function StockList() {
             </article>
           )) : (
             <div className="empty-history">
-              <strong>No earlier edition is cached yet.</strong>
-              <span>When the report changes next week, this week’s seven stocks will appear here automatically.</span>
+              <strong>{t('history.emptyTitle')}</strong>
+              <span>{t('history.emptyDescription')}</span>
             </div>
           )}
         </section>
       )}
 
       <footer>
-        <p>Data supplied by {data?.sources?.join(' and ') || 'public market sources'} and cached to protect provider limits.</p>
-        <p>Quotes may be delayed. For research only, not investment advice.</p>
+        <p>{t('footer.sources', { sources: data?.sources?.join(t('common.and')) || t('common.publicSources') })}</p>
+        <p>{t('footer.disclaimer')}</p>
       </footer>
 
       {selectedStock && <StockChartDialog stock={selectedStock} onClose={() => setSelectedStock(null)} />}
     </main>
+    </I18nContext.Provider>
   );
 }
 

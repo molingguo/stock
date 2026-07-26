@@ -53,6 +53,8 @@
 .brand strong { font-family: Georgia, 'Times New Roman', serif; font-size: 22px; letter-spacing: -0.4px; }
 .brand small { font-size: 8px; letter-spacing: 3.7px; margin-top: 5px; color: var(--muted); }
 
+.header-actions { display: flex; align-items: center; gap: 9px; }
+
 .market-status {
   display: flex;
   align-items: center;
@@ -67,6 +69,39 @@
 }
 
 .market-status span { width: 8px; height: 8px; border-radius: 50%; background: #3ba86f; box-shadow: 0 0 0 4px rgba(59, 168, 111, 0.12); }
+
+.language-toggle {
+  min-width: 82px;
+  height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 5px 16px rgba(20, 45, 37, 0.04);
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+.language-toggle span { color: var(--forest); font: 700 15px/1 Georgia, 'Times New Roman', serif; }
+.language-toggle:hover { border-color: #a9b9b2; background: #fff; transform: translateY(-1px); }
+.language-toggle:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: 2px; }
+
+html[lang='zh-CN'] body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Segoe UI', sans-serif; }
+html[lang='zh-CN'] .hero h1,
+html[lang='zh-CN'] .stat-card strong,
+html[lang='zh-CN'] .panel-heading h2,
+html[lang='zh-CN'] .report-history__heading h2,
+html[lang='zh-CN'] .archived-report__heading h3,
+html[lang='zh-CN'] .empty-favorites strong,
+html[lang='zh-CN'] .stock-chart-company h2 { font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif; letter-spacing: -0.04em; }
+html[lang='zh-CN'] .eyebrow { letter-spacing: 0.18em; }
 
 .hero {
   padding: 66px 0 48px;
@@ -305,8 +340,10 @@ footer p { margin: 0; }
   .site-header { min-height: 72px; }
   .brand-mark { width: 36px; height: 36px; border-radius: 11px; }
   .brand strong { font-size: 19px; }
+  .header-actions { gap: 6px; }
   .market-status { font-size: 0; padding: 9px; }
   .market-status span { width: 7px; height: 7px; }
+  .language-toggle { min-width: 72px; height: 36px; padding-inline: 10px; }
   .hero { padding: 38px 2px 30px; gap: 26px; }
   .hero h1 { margin-top: 12px; font-size: clamp(42px, 13vw, 58px); letter-spacing: -2.5px; }
   .hero__copy p { font-size: 14px; line-height: 1.6; }

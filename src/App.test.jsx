@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import App from './App';
 import { createStockCsv, sortStocksForExport } from './StockList';
+import { CHINESE_LOCALE, localeFromPathname, pathForLocale } from './i18n';
 
 const stock = {
   symbol: 'AAPL',
@@ -32,6 +33,7 @@ const unratedStock = {
 };
 
 test('loads, filters, and switches stock universes', async () => {
+  window.history.replaceState({}, '', '/');
   window.localStorage.removeItem('northstar:favorite-symbols:v1');
   window.localStorage.setItem('northstar:zacks-best-history:v1', JSON.stringify([{
     reportDate: '2026-07-17',
@@ -143,6 +145,49 @@ test('loads, filters, and switches stock universes', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Remove AAPL from favorites' }));
   expect(await screen.findByText('No favorite stocks yet')).toBeInTheDocument();
   expect(JSON.parse(window.localStorage.getItem('northstar:favorite-symbols:v1'))).toEqual([]);
+});
+
+test('supports canonical Chinese URLs and switches language without reloading data', async () => {
+  window.history.replaceState({}, '', '/zh_CN/?view=market#top');
+  window.matchMedia = vi.fn(() => ({
+    matches: true,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+  const callsBeforeRender = global.fetch.mock.calls.length;
+
+  render(<App />);
+
+  expect(await screen.findByRole('heading', { name: /洞察市场/ })).toBeInTheDocument();
+  await waitFor(() => expect(window.location.pathname).toBe('/zh-CN/'));
+  expect(document.documentElement).toHaveAttribute('lang', 'zh-CN');
+  expect(document.title).toBe('Northstar Markets — 美国股票探索');
+  expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', 'http://localhost:3000/zh-CN/');
+  expect(document.head.querySelector('link[rel="alternate"][hreflang="en"]')).toHaveAttribute('href', 'http://localhost:3000/');
+  expect(window.location.search).toBe('?view=market');
+  expect(window.location.hash).toBe('#top');
+  expect(screen.getByText('今日标普 500')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('搜索股票代码或公司')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '切换到英文' })).toHaveTextContent('English');
+
+  fireEvent.click(screen.getByRole('button', { name: '切换到英文' }));
+  expect(window.location.pathname).toBe('/');
+  expect(document.documentElement).toHaveAttribute('lang', 'en');
+  expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
+  expect(window.location.search).toBe('?view=market');
+  expect(window.location.hash).toBe('#top');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Switch to Chinese' }));
+  expect(window.location.pathname).toBe('/zh-CN/');
+  expect(global.fetch).toHaveBeenCalledTimes(callsBeforeRender);
+});
+
+test('maps locale paths using the BCP 47 route', () => {
+  expect(localeFromPathname('/zh-CN/')).toBe(CHINESE_LOCALE);
+  expect(localeFromPathname('/zh_CN/stocks')).toBe(CHINESE_LOCALE);
+  expect(localeFromPathname('/')).toBe('en');
+  expect(pathForLocale(CHINESE_LOCALE, '/')).toBe('/zh-CN/');
+  expect(pathForLocale('en', '/zh_CN/stocks')).toBe('/stocks');
 });
 
 test('builds CSV rows in the active table sort order', () => {
