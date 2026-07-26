@@ -92,6 +92,10 @@ function formatCompactCurrency(value) {
   return Number.isFinite(value) ? compactCurrencyFormatter.format(value) : '—';
 }
 
+function formatPe(value) {
+  return Number.isFinite(value) ? value.toFixed(1) : '—';
+}
+
 function formatPercent(value) {
   return Number.isFinite(value) ? `${value >= 0 ? '+' : ''}${value.toFixed(2)}%` : '—';
 }
@@ -626,7 +630,10 @@ function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavori
           <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} symbol={stock.symbol} />
         </div>
         <dl>
-          <div><dt>{t(isEtf ? 'column.fundAssets' : 'column.marketCap')}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
+          <div>
+            <dt>{t(isEtf ? 'column.fundAssets' : 'column.pe')}</dt>
+            <dd>{isEtf ? formatCompactCurrency(stock.marketCap) : formatPe(stock.pe)}</dd>
+          </div>
           <div><dt>{t(isEtf ? 'column.category' : 'column.sector')}</dt><dd>{translateMarketTerm(stock.sector || 'Other', locale)}</dd></div>
           {!isEtf && <div><dt>{t('card.fScore')}</dt><dd><PiotroskiScore score={stock.piotroskiScore} symbol={stock.symbol} /></dd></div>}
           <div className="stock-card__range">
@@ -887,7 +894,7 @@ function StockList() {
     }] : []),
     { field: 'marketCap', headerName: t(isEtfUniverse ? 'column.fundAssets' : 'column.marketCap'), width: 135, type: 'number', valueFormatter: formatCompactCurrency },
     { field: 'sector', headerName: t(isEtfUniverse ? 'column.category' : 'column.sector'), minWidth: 155, flex: 0.8, valueFormatter: (value) => translateMarketTerm(value, locale) },
-    ...(!isEtfUniverse ? [{ field: 'pe', headerName: t('column.pe'), width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' }] : []),
+    ...(!isEtfUniverse ? [{ field: 'pe', headerName: t('column.pe'), width: 90, type: 'number', valueFormatter: formatPe }] : []),
     {
       field: 'yearRangePosition',
       headerName: t('column.yearRange'),

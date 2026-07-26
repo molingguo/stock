@@ -95,6 +95,8 @@ test('loads, filters, and switches stock universes', async () => {
   expect(mobileAaplCard.querySelector('.stock-card__lead > .stock-card__price')).toHaveTextContent('$200.00');
   expect(mobileAaplCard.querySelector('.stock-card__signals').firstElementChild).toHaveClass('change-pill');
   expect(mobileAaplCard.querySelector('.stock-card__signals').lastElementChild).toHaveClass('zacks-rank-link');
+  expect(within(mobileAaplCard).getByText('P/E').nextElementSibling).toHaveTextContent('31.0');
+  expect(within(mobileAaplCard).queryByText('Market cap')).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: 'Open AAPL chart from company name' }));
   expect(screen.getByRole('dialog', { name: 'AAPL chart' })).toBeInTheDocument();
