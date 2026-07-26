@@ -112,6 +112,7 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.zacksCoverage, 1);
   assert.equal(extendedResult.label, 'U.S. Extended Market');
   assert.deepEqual(extendedResult.stocks.map((stock) => stock.symbol), ['BBB']);
+  assert.equal(extendedResult.stocks[0].marketRank, 2);
   assert.equal(extendedResult.stocks[0].zacksRank, 3);
   assert.equal(requests.length, 4);
   assert.equal(requests.filter((request) => request.includes('api.nasdaq.com')).length, 1);
@@ -187,6 +188,8 @@ test('excludes S&P constituents from the cached top-1000 extended-market view', 
   assert.equal(extended.count, 598);
   assert.equal(extended.label, 'U.S. Extended Market');
   assert.equal(extended.stocks.some((stock) => stock.symbol === 'S0' || stock.symbol === 'S1'), false);
+  assert.equal(extended.stocks[0].marketRank, 3);
+  assert.equal(extended.stocks.at(-1).marketRank, 600);
   assert.equal(cached.cacheStatus, 'fresh');
   assert.equal(requestCount, 8);
   assert.equal(zacksRequestCount, 3);

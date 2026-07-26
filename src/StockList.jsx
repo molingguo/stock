@@ -268,7 +268,7 @@ function StockList() {
       headerName: '#',
       width: 64,
       sortable: false,
-      valueGetter: (_value, row) => stocks.findIndex((stock) => stock.symbol === row.symbol) + 1,
+      valueGetter: (_value, row) => row.marketRank ?? stocks.findIndex((stock) => stock.symbol === row.symbol) + 1,
     },
     {
       field: 'symbol',
@@ -416,7 +416,7 @@ function StockList() {
             {isMobile ? (
               <div className="mobile-list" data-testid="mobile-stock-list">
                 {filteredStocks.slice(0, 50).map((stock) => (
-                  <StockCard key={stock.symbol} stock={stock} rank={stocks.findIndex((item) => item.symbol === stock.symbol) + 1} isEtf={isEtfUniverse} />
+                  <StockCard key={stock.symbol} stock={stock} rank={stock.marketRank ?? stocks.findIndex((item) => item.symbol === stock.symbol) + 1} isEtf={isEtfUniverse} />
                 ))}
                 {filteredStocks.length > 50 && <p className="mobile-limit">Showing the first 50 results. Use search or sector filters to narrow the list.</p>}
               </div>

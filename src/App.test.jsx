@@ -40,7 +40,9 @@ test('loads, filters, and switches stock universes', async () => {
       cacheStatus: 'fresh',
       zacksCoverage: 1,
       sources: ['Nasdaq', 'Zacks'],
-      stocks: [stock, unratedStock],
+      stocks: url.includes('extendedMarket')
+        ? [{ ...stock, marketRank: 42 }, { ...unratedStock, marketRank: 57 }]
+        : [stock, unratedStock],
     }),
   }));
   render(<App />);
@@ -61,6 +63,7 @@ test('loads, filters, and switches stock universes', async () => {
 
   fireEvent.click(screen.getByRole('button', { name: /extended market/i }));
   expect(await screen.findByRole('heading', { name: 'U.S. Extended Market' })).toBeInTheDocument();
+  expect(screen.getByText('42')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=extendedMarket');
 
   fireEvent.click(screen.getByRole('button', { name: /7 best stocks/i }));

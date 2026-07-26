@@ -56,6 +56,7 @@ function createProviderError(status, message) {
 function normalizeNasdaqStock(row, holding) {
   return {
     symbol: holding?.symbol || String(row.symbol || '').trim().toUpperCase(),
+    marketRank: row.marketRank || null,
     name: row.name || holding?.name || row.symbol,
     sector: holding?.sector && holding.sector !== '-' ? holding.sector : row.sector || 'Other',
     industry: row.industry || '',
@@ -233,6 +234,7 @@ function createMarketDataService({
       const quote = quotesBySymbol.get(company.symbol) || {};
       return {
         symbol: company.symbol,
+        marketRank: company.marketRank || null,
         name: quote.name || company.name || company.companyName || company.symbol,
         sector: company.sector || 'Other',
         industry: company.subSector || company.industry || '',
@@ -268,7 +270,8 @@ function createMarketDataService({
     ]);
     const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
     const extended = companies.filter((company) => company.symbol && asNumber(company.marketCap) !== null)
-      .sort((a, b) => Number(b.marketCap) - Number(a.marketCap)).slice(0, 1000);
+      .sort((a, b) => Number(b.marketCap) - Number(a.marketCap)).slice(0, 1000)
+      .map((company, index) => ({ ...company, marketRank: index + 1 }));
     const companiesOutsideSp500 = extended.filter((company) => !sp500Symbols.has(normalizeSymbol(company.symbol)));
     return normalizeFmpStocks(
       companiesOutsideSp500,
@@ -289,6 +292,7 @@ function createMarketDataService({
         .filter((stock) => stock.symbol && stock.price !== null && stock.marketCap !== null)
         .sort((a, b) => b.marketCap - a.marketCap)
         .slice(0, 1000)
+        .map((stock, index) => ({ ...stock, marketRank: index + 1 }))
         .filter((stock) => !sp500Symbols.has(normalizeSymbol(stock.symbol)));
     }
 
