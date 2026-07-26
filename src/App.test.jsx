@@ -18,6 +18,7 @@ const stock = {
   yearHigh: 220,
   zacksRank: 1,
   zacksRankText: 'Strong Buy',
+  piotroskiScore: 8,
 };
 
 const unratedStock = {
@@ -26,6 +27,7 @@ const unratedStock = {
   name: 'Microsoft Corporation',
   zacksRank: null,
   zacksRankText: '',
+  piotroskiScore: 6,
 };
 
 test('loads, filters, and switches stock universes', async () => {
@@ -56,6 +58,8 @@ test('loads, filters, and switches stock universes', async () => {
       resolvedReportUrl: url.includes('zacksBest') ? 'https://www.zacks.com/example?edition=20260724abc' : undefined,
       cacheStatus: 'fresh',
       zacksCoverage: 1,
+      piotroskiCoverage: 2,
+      piotroskiScoreYear: 2025,
       sources: ['Nasdaq', 'Zacks'],
       stocks: url.includes('extendedMarket')
         ? [{ ...stock, marketRank: 42 }, { ...unratedStock, marketRank: 57 }]
@@ -80,6 +84,8 @@ test('loads, filters, and switches stock universes', async () => {
   fireEvent.keyDown(screen.getByRole('dialog', { name: 'AAPL chart' }), { key: 'Escape' });
   expect(screen.queryByRole('dialog', { name: 'AAPL chart' })).not.toBeInTheDocument();
   expect(screen.getByText('Strong Buy')).toBeInTheDocument();
+  expect(screen.getAllByLabelText('Piotroski F-score 8 out of 9').length).toBeGreaterThan(0);
+  expect(screen.getByText('2 SEC F-scores (2025)')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
 
   fireEvent.change(screen.getByLabelText('Zacks rank'), { target: { value: 'buy-signals' } });
@@ -119,6 +125,8 @@ test('builds CSV rows in the active table sort order', () => {
 
   expect(sorted.map((row) => row.symbol)).toEqual(['HIGH', 'LOW']);
   expect(lines[0]).toContain('52-week position (%)');
+  expect(lines[0]).toContain('Piotroski F-score');
+  expect(lines[1]).toContain(',8,31,');
   expect(lines[1]).toContain('HIGH,"Higher, Company",20');
   expect(lines[2]).toContain('LOW,Lower Company,10');
 });

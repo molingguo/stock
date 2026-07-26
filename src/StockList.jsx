@@ -93,13 +93,13 @@ export function createStockCsv(rows, { isEtf = false, allStocks = rows } = {}) {
     'Rank', isEtf ? 'Fund' : 'Ticker', 'Name', 'Price', 'Day change (%)',
     'Zacks rank', 'Zacks rating', isEtf ? 'Fund assets' : 'Market cap',
     isEtf ? 'Category' : 'Sector',
-    ...(!isEtf ? ['P/E'] : []),
+    ...(!isEtf ? ['Piotroski F-score', 'P/E'] : []),
     '52-week low', '52-week high', '52-week position (%)',
   ];
   const values = rows.map((stock) => [
     stockRank(stock, allStocks), stock.symbol, stock.name, stock.price, stock.changePercentage,
     stock.zacksRank, stock.zacksRankText, stock.marketCap, stock.sector,
-    ...(!isEtf ? [stock.pe] : []),
+    ...(!isEtf ? [stock.piotroskiScore, stock.pe] : []),
     stock.yearLow, stock.yearHigh,
     Number.isFinite(yearRangePosition(stock)) ? (yearRangePosition(stock) * 100).toFixed(2) : null,
   ]);
@@ -439,6 +439,23 @@ function ZacksRank({ rank, text, symbol }) {
   );
 }
 
+function PiotroskiScore({ score }) {
+  if (!Number.isInteger(score)) {
+    return <span className="f-score unavailable" aria-label="Piotroski F-score unavailable">—</span>;
+  }
+
+  const tone = score >= 7 ? 'strong' : score >= 4 ? 'neutral' : 'weak';
+  return (
+    <span
+      className={`f-score ${tone}`}
+      aria-label={`Piotroski F-score ${score} out of 9`}
+      title="SEC-derived financial strength score: 0 is weakest and 9 is strongest"
+    >
+      <strong>{score}</strong><span>/9</span>
+    </span>
+  );
+}
+
 function StatCard({ eyebrow, value, detail, tone = 'default' }) {
   return (
     <article className={`stat-card ${tone}`}>
@@ -481,7 +498,7 @@ function StockCard({ stock, rank, isEtf, onOpenChart }) {
         <dl>
           <div><dt>{isEtf ? 'Fund assets' : 'Market cap'}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
           <div><dt>{isEtf ? 'Category' : 'Sector'}</dt><dd>{stock.sector || 'Other'}</dd></div>
-          <div><dt>Volume</dt><dd>{Number.isFinite(stock.volume) ? numberFormatter.format(stock.volume) : '—'}</dd></div>
+          {!isEtf && <div><dt>F-score</dt><dd><PiotroskiScore score={stock.piotroskiScore} /></dd></div>}
           <div className="stock-card__range">
             <dt>52-week range</dt>
             <dd><YearRange low={stock.yearLow} high={stock.yearHigh} price={stock.price} /></dd>
@@ -650,6 +667,15 @@ function StockList() {
       cellClassName: 'align-center-cell',
       renderCell: ({ row }) => <ZacksRank rank={row.zacksRank} text={row.zacksRankText} symbol={row.symbol} />,
     },
+    ...(!isEtfUniverse ? [{
+      field: 'piotroskiScore',
+      headerName: 'F-score',
+      description: 'Piotroski financial strength score calculated from SEC filings (0 weakest, 9 strongest)',
+      width: 104,
+      type: 'number',
+      cellClassName: 'align-center-cell',
+      renderCell: ({ value }) => <PiotroskiScore score={value} />,
+    }] : []),
     { field: 'marketCap', headerName: isEtfUniverse ? 'Fund assets' : 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
     { field: 'sector', headerName: isEtfUniverse ? 'Category' : 'Sector', minWidth: 155, flex: 0.8 },
     ...(!isEtfUniverse ? [{ field: 'pe', headerName: 'P/E', width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' }] : []),
@@ -729,6 +755,12 @@ function StockList() {
               <span>{formatUpdatedAt(data?.asOf)}</span>
               <span>{data?.cacheStatus === 'stale' ? 'Showing cached data' : data?.reportCacheStatus === 'fallback' ? 'Verified report snapshot' : 'Provider cache active'}</span>
               <span>{numberFormatter.format(data?.zacksCoverage || 0)} Zacks rated</span>
+              {!isEtfUniverse && (
+                <span>
+                  {numberFormatter.format(data?.piotroskiCoverage || 0)} SEC F-scores
+                  {data?.piotroskiScoreYear ? ` (${data.piotroskiScoreYear})` : ''}
+                </span>
+              )}
               {isBestStocksUniverse && (data?.resolvedReportUrl || data?.reportUrl) && (
                 <a href={data.resolvedReportUrl || data.reportUrl} target="_blank" rel="noreferrer">View source report</a>
               )}
