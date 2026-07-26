@@ -172,6 +172,28 @@ function ChangeValue({ value }) {
   return <span className={`change-pill ${tone}`}>{formatPercent(value)}</span>;
 }
 
+function TickerAvatar({ symbol, logoUrl }) {
+  const [imageFailed, setImageFailed] = React.useState(false);
+
+  React.useEffect(() => setImageFailed(false), [logoUrl]);
+
+  const showLogo = Boolean(logoUrl) && !imageFailed;
+  return (
+    <span className={showLogo ? 'ticker-avatar has-logo' : 'ticker-avatar'} aria-hidden="true">
+      {showLogo ? (
+        <img
+          src={logoUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setImageFailed(true)}
+        />
+      ) : symbol.slice(0, 1)}
+    </span>
+  );
+}
+
 function YearRange({ low, high, price }) {
   const hasRange = Number.isFinite(low) && Number.isFinite(high) && high > low;
   if (!hasRange) return <span className="year-range unavailable">—</span>;
@@ -229,7 +251,7 @@ function StockCard({ stock, rank, isEtf }) {
       <article className="stock-card">
         <div className="stock-card__lead">
           <span className="rank">{rank}</span>
-          <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
+          <TickerAvatar symbol={stock.symbol} logoUrl={stock.logoUrl} />
           <div>
             <strong>{stock.symbol}</strong>
             <span>{stock.name}</span>
@@ -385,7 +407,7 @@ function StockList() {
           rel="noreferrer"
           aria-label={`View ${row.symbol} on Yahoo Finance`}
         >
-          <span className="ticker-avatar">{row.symbol.slice(0, 1)}</span>
+          <TickerAvatar symbol={row.symbol} logoUrl={row.logoUrl} />
           <span><strong>{row.symbol}</strong><small>{row.name}</small></span>
         </a>
       ),

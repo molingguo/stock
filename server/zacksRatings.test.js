@@ -22,6 +22,7 @@ test('serves stale Zacks ranks when a refresh is rate limited', async () => {
       : jsonResponse({
         AAPL: {
           name: 'Apple Inc.',
+          company_logo_url: 'https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png',
           last: '200.50',
           volume: '50,000,000',
           percent_net_change: '1.25',
@@ -41,6 +42,7 @@ test('serves stale Zacks ranks when a refresh is rate limited', async () => {
   assert.deepEqual(initial.ratings.get('AAPL'), { rank: 1, text: 'Strong Buy' });
   assert.deepEqual(initial.quotes.get('AAPL'), {
     name: 'Apple Inc.',
+    logoUrl: 'https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png',
     price: 200.5,
     change: null,
     changePercentage: 1.25,

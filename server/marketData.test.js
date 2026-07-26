@@ -92,6 +92,7 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
           zacks_rank: '1',
           zacks_rank_text: 'Strong Buy',
           pe_f1: '24.5',
+          company_logo_url: 'https://staticx-tuner.zacks.com/images/stocks-thumb/AAA.png',
           source: { sungard: { yrlow: '8.25', yrhigh: '14.75' } },
         },
         BBB: { ticker: 'BBB', zacks_rank: '3', zacks_rank_text: 'Hold', pe_f1: '18.2' },
@@ -115,6 +116,7 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.stocks[0].zacksRank, 1);
   assert.equal(result.stocks[0].zacksRankText, 'Strong Buy');
   assert.equal(result.stocks[0].pe, 24.5);
+  assert.equal(result.stocks[0].logoUrl, 'https://staticx-tuner.zacks.com/images/stocks-thumb/AAA.png');
   assert.equal(result.stocks[0].yearLow, 8.25);
   assert.equal(result.stocks[0].yearHigh, 14.75);
   assert.equal(result.zacksCoverage, 1);

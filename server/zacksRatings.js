@@ -35,6 +35,16 @@ function asNumber(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeLogoUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return '';
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === 'staticx-tuner.zacks.com' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 function chunk(items, size) {
   const groups = [];
   for (let index = 0; index < items.length; index += size) {
@@ -97,6 +107,7 @@ function createZacksRatingsService({
         : null;
       const quote = item ? {
         name: item.name || item.company_short_name || item.ap_short_name || '',
+        logoUrl: normalizeLogoUrl(item.company_logo_url),
         price: asNumber(item.last),
         change: asNumber(item.net_change),
         changePercentage: asNumber(item.percent_net_change),

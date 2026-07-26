@@ -359,6 +359,7 @@ function createMarketDataService({
         return {
           ...stock,
           name: quote?.name || stock.name,
+          logoUrl: stock.logoUrl || quote?.logoUrl || '',
           price: stock.price ?? quote?.price ?? null,
           change: stock.change ?? quote?.change ?? null,
           changePercentage: stock.changePercentage ?? quote?.changePercentage ?? null,

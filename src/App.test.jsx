@@ -5,6 +5,7 @@ import App from './App';
 const stock = {
   symbol: 'AAPL',
   name: 'Apple Inc.',
+  logoUrl: 'https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png',
   price: 200,
   changePercentage: 1.25,
   marketCap: 3000000000000,
@@ -66,6 +67,7 @@ test('loads, filters, and switches stock universes', async () => {
     'href',
     'https://finance.yahoo.com/quote/AAPL/'
   );
+  expect(document.querySelector('img[src="https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png"]')).toBeInTheDocument();
   expect(screen.getAllByRole('img', { name: '52-week range from $120.00 to $220.00; current price $200.00' }).length).toBeGreaterThan(0);
   expect(screen.getByText('Strong Buy')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
