@@ -12,6 +12,8 @@ The U.S. Extended Market view ranks U.S. stocks by market cap, takes the top 1,0
 
 The Zacks 7 Best Stocks view resolves the report's dated edition, reads the seven symbols from its public edition script, and displays the edition date from the resolved URL. Zacks may challenge automated server requests, so the app falls back to its last verified edition instead of showing an empty view; set `ZACKS_7_BEST_EDITION_URL` to a newly resolved report URL whenever an automated refresh cannot get through.
 
+Optional 7-day, 30-day, and one-year returns come from Massive's adjusted Daily Market Summary. Each summary contains the entire U.S. stock market, so the server needs only three requests per day regardless of how many universes or tickers users view. Without a Massive key, the application remains usable and displays an em dash for those return fields.
+
 The server is intentionally conservative with provider usage:
 
 - S&P 500 data uses one Nasdaq universe request and one State Street holdings request.
@@ -23,6 +25,7 @@ The server is intentionally conservative with provider usage:
 - Concurrent requests share in-flight universe and source requests.
 - Cached data can be served for up to 24 hours if a source is unavailable or rate limiting.
 - The browser also keeps each universe response for 60 seconds.
+- Historical returns share three full-market snapshots across every universe and cache them for 24 hours by default.
 
 This is a good default for a single application instance. For a scaled deployment, replace the in-memory cache with Redis or another shared cache so all instances reuse the same provider response.
 
@@ -50,11 +53,15 @@ npm start
 | `ZACKS_STALE_MINUTES` | `1440` | Maximum stale Zacks-rank fallback lifetime |
 | `ZACKS_7_BEST_CACHE_MINUTES` | `1440` | Weekly report refresh-check lifetime |
 | `ZACKS_7_BEST_EDITION_URL` | unset | Optional resolved report URL override when Zacks blocks server redirects |
+| `MASSIVE_API_KEY` | unset | Local/server-side Massive key enabling historical return columns |
+| `MASSIVE_API_KEY_SECRET_ID` | unset | AWS Secrets Manager secret name or ARN used by Amplify Hosting Compute |
+| `MARKET_PERFORMANCE_CACHE_MINUTES` | `1440` | Fresh Massive full-market snapshot lifetime |
+| `MARKET_PERFORMANCE_STALE_MINUTES` | `10080` | Maximum stale Massive snapshot lifetime |
 | `PORT` | `3001` | API/production server port |
 
 FMP's free plan currently returns HTTP 402 for the constituent and batch-quote endpoints this app needs. Keep the default public provider unless your FMP subscription includes those endpoints. If you use FMP, do not prefix its key with `REACT_APP_`; doing so would expose it in the browser bundle.
 
-Source references: [Nasdaq Stock Screener](https://www.nasdaq.com/market-activity/stocks/screener), [State Street SPY holdings](https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-500-etf-trust-spy), [Zacks Rank methodology](https://www.zacks.com/zrank/about-zacks-rank-in-industry.php), and [Zacks 7 Best Stocks report](https://www.zacks.com/pfp/report/FD764D21A742A0BDC23DAEC9ECCBD81A/?adid=ZCOM_IYFHOME_7BEST_CHERRY&alert=IYF_HOME_555_A382).
+Source references: [Nasdaq Stock Screener](https://www.nasdaq.com/market-activity/stocks/screener), [State Street SPY holdings](https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-500-etf-trust-spy), [Zacks Rank methodology](https://www.zacks.com/zrank/about-zacks-rank-in-industry.php), [Zacks 7 Best Stocks report](https://www.zacks.com/pfp/report/FD764D21A742A0BDC23DAEC9ECCBD81A/?adid=ZCOM_IYFHOME_7BEST_CHERRY&alert=IYF_HOME_555_A382), and [Massive Daily Market Summary](https://massive.com/docs/rest/stocks/aggregates/daily-market-summary).
 
 ## Commands
 
@@ -74,4 +81,4 @@ The repository includes an AWS Amplify Hosting Compute deployment for the Vite f
 
 `GET /api/stocks?universe=sp500|popularEtfs|extendedMarket|zacksBest`
 
-Responses include normalized stock rows with `zacksRank` and `zacksRankText`, plus `zacksCoverage`, `asOf`, `refreshAfter`, and cache-status metadata. The `zacksBest` response also includes `reportDate`, `reportUrl`, `resolvedReportUrl`, and `reportCacheStatus`. Quotes and ratings may be delayed and are intended for research, not investment advice.
+Responses include normalized stock rows with `zacksRank`, `zacksRankText`, `change7Day`, `change30Day`, and `change1Year`, plus coverage, source-date, and cache-status metadata. The `zacksBest` response also includes `reportDate`, `reportUrl`, `resolvedReportUrl`, and `reportCacheStatus`. Quotes and ratings may be delayed and are intended for research, not investment advice.

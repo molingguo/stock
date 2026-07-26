@@ -109,6 +109,8 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.stocks[0].zacksRank, 1);
   assert.equal(result.stocks[0].zacksRankText, 'Strong Buy');
   assert.equal(result.stocks[0].pe, 24.5);
+  assert.equal(result.stocks[0].change7Day, null);
+  assert.equal(result.performanceCacheStatus, 'unconfigured');
   assert.equal(result.zacksCoverage, 1);
   assert.equal(extendedResult.label, 'U.S. Extended Market');
   assert.deepEqual(extendedResult.stocks.map((stock) => stock.symbol), ['BBB']);

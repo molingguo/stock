@@ -173,6 +173,9 @@ function StockCard({ stock, rank, isEtf }) {
           <div><dt>{isEtf ? 'Fund assets' : 'Market cap'}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
           <div><dt>{isEtf ? 'Category' : 'Sector'}</dt><dd>{stock.sector || 'Other'}</dd></div>
           <div><dt>Volume</dt><dd>{Number.isFinite(stock.volume) ? numberFormatter.format(stock.volume) : '—'}</dd></div>
+          <div><dt>7-day change</dt><dd>{formatPercent(stock.change7Day)}</dd></div>
+          <div><dt>30-day change</dt><dd>{formatPercent(stock.change30Day)}</dd></div>
+          <div><dt>1-year change</dt><dd>{formatPercent(stock.change1Year)}</dd></div>
         </dl>
       </article>
     </a>
@@ -193,8 +196,7 @@ function LoadingState() {
   );
 }
 
-function useMobileLayout() {
-  const query = '(max-width: 700px)';
+function useMediaLayout(query) {
   const [isMobile, setIsMobile] = React.useState(
     () => typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(query).matches : false
   );
@@ -205,7 +207,7 @@ function useMobileLayout() {
     const updateLayout = (event) => setIsMobile(event.matches);
     mediaQuery.addEventListener?.('change', updateLayout);
     return () => mediaQuery.removeEventListener?.('change', updateLayout);
-  }, []);
+  }, [query]);
 
   return isMobile;
 }
@@ -219,7 +221,9 @@ function StockList() {
   const [sector, setSector] = React.useState('all');
   const [zacksFilter, setZacksFilter] = React.useState('all');
   const [refreshVersion, setRefreshVersion] = React.useState(0);
-  const isMobile = useMobileLayout();
+  const isMobile = useMediaLayout('(max-width: 700px)');
+  const isCompactTable = useMediaLayout('(max-width: 1300px)');
+  const isNarrowTable = useMediaLayout('(max-width: 1000px)');
   const isEtfUniverse = universe === 'popularEtfs';
   const isBestStocksUniverse = universe === 'zacksBest';
 
@@ -302,27 +306,39 @@ function StockList() {
         </a>
       ),
     },
-    { field: 'price', headerName: 'Price', width: 118, type: 'number', valueFormatter: formatCurrency },
+    { field: 'price', headerName: 'Price', width: 100, type: 'number', valueFormatter: formatCurrency },
     {
       field: 'changePercentage',
       headerName: 'Day change',
-      width: 132,
+      width: 100,
       type: 'number',
       cellClassName: 'align-center-cell',
       renderCell: ({ value }) => <ChangeValue value={value} />,
     },
+    ...[
+      ['change7Day', '7-day change', 100],
+      ['change30Day', '30-day change', 105],
+      ['change1Year', '1-year change', 105],
+    ].map(([field, headerName, width]) => ({
+      field,
+      headerName,
+      width,
+      type: 'number',
+      cellClassName: 'align-center-cell',
+      renderCell: ({ value }) => <ChangeValue value={value} />,
+    })),
     {
       field: 'zacksRank',
       headerName: 'Zacks rank',
-      width: 154,
+      width: 140,
       type: 'number',
       cellClassName: 'align-center-cell',
       renderCell: ({ row }) => <ZacksRank rank={row.zacksRank} text={row.zacksRankText} />,
     },
-    { field: 'marketCap', headerName: isEtfUniverse ? 'Fund assets' : 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
-    { field: 'sector', headerName: isEtfUniverse ? 'Category' : 'Sector', minWidth: 155, flex: 0.8 },
-    ...(!isEtfUniverse ? [{ field: 'pe', headerName: 'P/E', width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' }] : []),
-    { field: 'volume', headerName: 'Volume', width: 110, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? numberFormatter.format(value) : '—' },
+    { field: 'marketCap', headerName: isEtfUniverse ? 'Fund assets' : 'Market cap', width: 120, type: 'number', valueFormatter: formatCompactCurrency },
+    { field: 'sector', headerName: isEtfUniverse ? 'Category' : 'Sector', minWidth: 125, flex: 0.6 },
+    ...(!isEtfUniverse ? [{ field: 'pe', headerName: 'P/E', width: 72, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' }] : []),
+    { field: 'volume', headerName: 'Volume', width: 96, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? numberFormatter.format(value) : '—' },
   ], [isEtfUniverse, stocks]);
 
   const selectUniverse = (nextUniverse) => {
@@ -446,6 +462,12 @@ function StockList() {
                     rows={filteredStocks}
                     columns={columns}
                     getRowId={(row) => row.symbol}
+                    columnVisibilityModel={{
+                      marketCap: !isNarrowTable,
+                      sector: !isNarrowTable,
+                      pe: !isCompactTable,
+                      volume: !isCompactTable,
+                    }}
                     onRowClick={({ row }, event) => {
                       if (event.target.closest('a')) return;
                       window.open(stockDetailUrl(row.symbol), '_blank', 'noopener,noreferrer');

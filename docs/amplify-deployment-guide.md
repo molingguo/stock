@@ -17,6 +17,7 @@ The following deployment automation is already implemented:
 - `deploy-manifest.json` sends static assets through Amplify's CDN and all `/api/*` requests through Hosting Compute.
 - `scripts/amplifyServer.js` starts Express on Amplify's required port.
 - `scripts/buildAmplify.js` assembles the static and compute artifacts, installs production-only dependencies, copies only approved non-secret runtime settings, and enforces Amplify's 220 MB compute limit.
+- Historical return data can read a Massive API key securely from AWS Secrets Manager through an Amplify SSR Compute role.
 - `npm run build:amplify` produces the complete deployment artifact.
 - `.amplify-hosting` is excluded from Git.
 
@@ -29,7 +30,65 @@ The packaged application has been verified locally:
 
 The remaining work requires access to the AWS Amplify console and permission to push the local `main` branch.
 
-## 1. Add the Amplify environment variables
+## 1. Create the optional historical-performance secret
+
+The 7-day, 30-day, and one-year columns use Massive's Daily Market Summary. The free Stocks Basic plan currently includes end-of-day data, two years of history, and five API calls per minute. This app makes three cached requests per day.
+
+If you do not configure Massive, the rest of the application still works and the three historical-return columns display an em dash.
+
+1. Create a free account at [Massive](https://massive.com/pricing?product=stocks).
+2. Copy the API key from the Massive dashboard.
+3. In the AWS console, open **Secrets Manager** in the same region as the Amplify app.
+4. Choose **Store a new secret**.
+5. Choose **Other type of secret**.
+6. Add a key/value pair whose key is `MASSIVE_API_KEY` and whose value is the Massive key.
+7. Name the secret `northstar-markets/massive-api-key` and create it.
+8. Copy the secret ARN for the IAM policy below.
+
+Do not put the Massive key itself in Amplify environment variables. AWS warns that users with deployment-artifact access can read values bundled for an SSR runtime.
+
+### Give Amplify read-only access to that secret
+
+1. Open **IAM → Policies → Create policy → JSON**.
+2. Paste this least-privilege policy, replacing the resource with the copied secret ARN:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": "secretsmanager:GetSecretValue",
+         "Resource": "YOUR_SECRET_ARN"
+       }
+     ]
+   }
+   ```
+
+3. Name it `NorthstarMassiveSecretRead` and create it.
+4. Open **IAM → Roles → Create role → Custom trust policy**.
+5. Use this Amplify Compute trust policy:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": { "Service": "amplify.amazonaws.com" },
+         "Action": "sts:AssumeRole"
+       }
+     ]
+   }
+   ```
+
+6. Attach `NorthstarMassiveSecretRead` and name the role `NorthstarAmplifyComputeRole`.
+7. Return to Amplify and open **App settings → IAM roles**.
+8. Under **Compute role**, choose **Edit**, select `NorthstarAmplifyComputeRole`, and save it for `main`.
+
+AWS documents the trust relationship and Compute-role attachment in [Adding an SSR Compute role](https://docs.aws.amazon.com/amplify/latest/userguide/amplify-SSR-compute-role.html).
+
+## 2. Add the Amplify environment variables
 
 Configure these variables before pushing the deployment commit so the first automatic deployment receives the correct settings.
 
@@ -48,6 +107,9 @@ Configure these variables before pushing the deployment commit so the first auto
 | `ZACKS_CACHE_MINUTES` | `720` |
 | `ZACKS_STALE_MINUTES` | `1440` |
 | `ZACKS_7_BEST_CACHE_MINUTES` | `1440` |
+| `MARKET_PERFORMANCE_CACHE_MINUTES` | `1440` |
+| `MARKET_PERFORMANCE_STALE_MINUTES` | `10080` |
+| `MASSIVE_API_KEY_SECRET_ID` | `northstar-markets/massive-api-key` |
 
 7. Apply the values to all branches, or add a `main` branch override if other branches need different settings.
 8. Select **Save**.
@@ -56,6 +118,7 @@ Do not add:
 
 - `PORT`: the Amplify server entry point handles the required port automatically.
 - `FMP_API_KEY`: the application uses the public provider because FMP's free plan does not include the required endpoints.
+- `MASSIVE_API_KEY`: use the Secrets Manager identifier above so the key is never copied into the deployment artifact.
 - Any value copied wholesale from the local `.env` file.
 
 If `FMP_API_KEY` already exists in the Amplify environment settings, remove it unless another deployed component still needs it.
@@ -72,7 +135,7 @@ ZACKS_7_BEST_EDITION_URL=https://www.zacks.com/registration/ultimatetrader/welco
 
 Remove or replace the override when it becomes outdated; otherwise it intentionally pins the application to that edition.
 
-## 2. Confirm the connected branch settings
+## 3. Confirm the connected branch settings
 
 In the Amplify console:
 
@@ -83,7 +146,7 @@ In the Amplify console:
 
 Do not manually paste a different build specification into the console. The committed `amplify.yml` is the source of truth and takes precedence over console build settings.
 
-## 3. Push the prepared commit
+## 4. Push the prepared commit
 
 From the repository on the local machine, inspect the prepared commit:
 
@@ -100,7 +163,7 @@ git push origin main
 
 Pushing `main` should start an Amplify deployment automatically.
 
-## 4. Monitor the build
+## 5. Monitor the build
 
 1. Return to the Amplify application.
 2. Select the `main` branch.
@@ -130,7 +193,7 @@ The artifact base directory should be:
 
 Amplify should detect `.amplify-hosting/deploy-manifest.json` and provision Hosting Compute for the Express server.
 
-## 5. Verify the production API
+## 6. Verify the production API
 
 After deployment, open the health endpoint using the Amplify or custom domain:
 
@@ -157,6 +220,7 @@ The response should be JSON containing:
 - `reportDate`
 - `zacksCoverage`
 - A seven-item `stocks` array
+- `change7Day`, `change30Day`, and `change1Year` values when Massive is configured
 
 Also verify the default universe:
 
@@ -166,7 +230,7 @@ https://YOUR_DOMAIN/api/stocks?universe=sp500
 
 The first uncached request can take longer because it retrieves and enriches the market universe. Subsequent requests should use the provider cache.
 
-## 6. Verify the production UI
+## 7. Verify the production UI
 
 1. Open the main application URL.
 2. Confirm that the S&P 500 table loads.
@@ -175,6 +239,7 @@ The first uncached request can take longer because it retrieves and enriches the
 5. Open **7 Best Stocks** and confirm that the report date and seven tickers appear.
 6. Test at a mobile viewport or on a phone.
 7. Open the browser Network panel and confirm `/api/stocks?...` requests return HTTP 200 with JSON.
+8. Confirm the three historical-return columns contain percentages rather than em dashes.
 
 ## Troubleshooting
 
@@ -201,6 +266,16 @@ Inspect the Hosting Compute logs for the request. Confirm the runtime can make o
 
 The Zacks report may show `Verified report snapshot`. This is expected when Zacks blocks automated report resolution; quotes and ranks are still refreshed separately.
 
+### Historical returns display em dashes
+
+Inspect the `/api/stocks` response. If `performanceCacheStatus` is `unconfigured` or `unavailable`, confirm:
+
+- `MASSIVE_API_KEY_SECRET_ID` exactly matches the Secrets Manager name or ARN.
+- The secret is in the Amplify app's AWS region.
+- The secret contains `MASSIVE_API_KEY` with the expected value.
+- The `main` branch has the SSR Compute role attached.
+- The role can call `secretsmanager:GetSecretValue` for only that secret ARN.
+
 ### The compute artifact exceeds 220 MB
 
 The build script stops before deployment when this happens. Review newly added production dependencies and ensure frontend-only libraries have not unnecessarily expanded the server artifact.
@@ -217,9 +292,12 @@ ZACKS_CACHE_MINUTES
 ZACKS_STALE_MINUTES
 ZACKS_7_BEST_CACHE_MINUTES
 ZACKS_7_BEST_EDITION_URL
+MARKET_PERFORMANCE_CACHE_MINUTES
+MARKET_PERFORMANCE_STALE_MINUTES
+MASSIVE_API_KEY_SECRET_ID
 ```
 
-It deliberately excludes `FMP_API_KEY` and every unrecognized environment variable. Do not modify that allowlist to include credentials because Amplify build values can appear in deployment artifacts.
+It deliberately excludes `FMP_API_KEY`, `MASSIVE_API_KEY`, and every unrecognized environment variable. The Massive key is retrieved at runtime with the SSR Compute role; only its non-secret Secrets Manager identifier is copied into the compute bundle. Do not modify the allowlist to include credentials because Amplify build values can appear in deployment artifacts.
 
 The application retains its in-memory provider cache, but each Amplify compute instance has a separate cache. That is appropriate for light traffic. If usage grows substantially, move provider responses into DynamoDB so all compute instances share one cache.
 

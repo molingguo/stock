@@ -11,6 +11,9 @@ const stock = {
   volume: 50000000,
   sector: 'Technology',
   pe: 31,
+  change7Day: 7.5,
+  change30Day: -2.5,
+  change1Year: 18.25,
   zacksRank: 1,
   zacksRankText: 'Strong Buy',
 };
@@ -53,6 +56,9 @@ test('loads, filters, and switches stock universes', async () => {
     'https://finance.yahoo.com/quote/AAPL/'
   );
   expect(screen.getByText('Strong Buy')).toBeInTheDocument();
+  expect(screen.getAllByText('+7.50%')).not.toHaveLength(0);
+  expect(screen.getAllByText('-2.50%')).not.toHaveLength(0);
+  expect(screen.getAllByText('+18.25%')).not.toHaveLength(0);
   expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
 
   fireEvent.change(screen.getByLabelText('Zacks rank'), { target: { value: 'buy-signals' } });
