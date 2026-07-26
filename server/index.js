@@ -5,8 +5,12 @@ const { loadEnvFile } = require('./env');
 loadEnvFile();
 
 const { createMarketDataService } = require('./marketData');
+const { createEtfHoldingsService } = require('./etfHoldings');
 
-function createApp({ marketData = createMarketDataService() } = {}) {
+function createApp({
+  marketData = createMarketDataService(),
+  etfHoldings = createEtfHoldingsService(),
+} = {}) {
   const app = express();
 
   app.disable('x-powered-by');
@@ -36,6 +40,25 @@ function createApp({ marketData = createMarketDataService() } = {}) {
       const status = Number.isInteger(error.status) ? error.status : 500;
       response.status(status).json({
         error: status >= 500 ? 'Market data is temporarily unavailable.' : error.message,
+        detail: error.message,
+      });
+    }
+  });
+
+  app.get('/api/etf-holdings', async (request, response) => {
+    try {
+      if (Array.isArray(request.query.symbol)) {
+        const error = new Error('ETF holdings require one symbol.');
+        error.status = 400;
+        throw error;
+      }
+      const data = await etfHoldings.getHoldings(request.query.symbol);
+      response.set('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
+      response.json(data);
+    } catch (error) {
+      const status = Number.isInteger(error.status) ? error.status : 500;
+      response.status(status).json({
+        error: status >= 500 ? 'ETF holdings are temporarily unavailable.' : error.message,
         detail: error.message,
       });
     }
