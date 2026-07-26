@@ -105,6 +105,16 @@ function ChangeValue({ value }) {
   return <span className={`change-pill ${tone}`}>{formatPercent(value)}</span>;
 }
 
+function ZacksRank({ rank, text }) {
+  if (!Number.isInteger(rank)) return <span className="zacks-rank unavailable">Not rated</span>;
+  const tone = ['strong-buy', 'buy', 'hold', 'sell', 'strong-sell'][rank - 1];
+  return (
+    <span className={`zacks-rank ${tone}`}>
+      <strong>#{rank}</strong>{text}
+    </span>
+  );
+}
+
 function StatCard({ eyebrow, value, detail, tone = 'default' }) {
   return (
     <article className={`stat-card ${tone}`}>
@@ -128,7 +138,10 @@ function StockCard({ stock, rank }) {
       </div>
       <div className="stock-card__quote">
         <strong>{formatCurrency(stock.price)}</strong>
-        <ChangeValue value={stock.changePercentage} />
+        <div>
+          <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} />
+          <ChangeValue value={stock.changePercentage} />
+        </div>
       </div>
       <dl>
         <div><dt>Market cap</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
@@ -177,6 +190,7 @@ function StockList() {
   const [error, setError] = React.useState('');
   const [search, setSearch] = React.useState('');
   const [sector, setSector] = React.useState('all');
+  const [zacksFilter, setZacksFilter] = React.useState('all');
   const [refreshVersion, setRefreshVersion] = React.useState(0);
   const isMobile = useMobileLayout();
 
@@ -209,20 +223,26 @@ function StockList() {
     const query = search.trim().toLowerCase();
     return stocks.filter((stock) => {
       const matchesSearch = !query || stock.symbol.toLowerCase().includes(query) || stock.name.toLowerCase().includes(query);
-      return matchesSearch && (sector === 'all' || stock.sector === sector);
+      const matchesSector = sector === 'all' || stock.sector === sector;
+      const matchesZacks = zacksFilter === 'all'
+        || (zacksFilter === 'buy-signals' && Number.isInteger(stock.zacksRank) && stock.zacksRank <= 2)
+        || (zacksFilter === 'unrated' && !Number.isInteger(stock.zacksRank))
+        || stock.zacksRank === Number(zacksFilter);
+      return matchesSearch && matchesSector && matchesZacks;
     });
-  }, [search, sector, stocks]);
+  }, [search, sector, stocks, zacksFilter]);
 
   const stats = React.useMemo(() => {
     const moves = stocks.map((stock) => stock.changePercentage).filter(Number.isFinite).sort((a, b) => a - b);
-    const advancers = moves.filter((move) => move > 0).length;
     const middle = Math.floor(moves.length / 2);
     const median = moves.length ? (moves.length % 2 ? moves[middle] : (moves[middle - 1] + moves[middle]) / 2) : null;
+    const strongBuys = stocks.filter((stock) => stock.zacksRank === 1).length;
+    const buys = stocks.filter((stock) => stock.zacksRank === 2).length;
     return {
-      advancers,
-      advancerShare: moves.length ? Math.round((advancers / moves.length) * 100) : 0,
       median,
       marketCap: stocks.reduce((sum, stock) => sum + (stock.marketCap || 0), 0),
+      strongBuys,
+      buys,
     };
   }, [stocks]);
 
@@ -254,6 +274,13 @@ function StockList() {
       type: 'number',
       renderCell: ({ value }) => <ChangeValue value={value} />,
     },
+    {
+      field: 'zacksRank',
+      headerName: 'Zacks rank',
+      width: 154,
+      type: 'number',
+      renderCell: ({ row }) => <ZacksRank rank={row.zacksRank} text={row.zacksRankText} />,
+    },
     { field: 'marketCap', headerName: 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
     { field: 'sector', headerName: 'Sector', minWidth: 155, flex: 0.8 },
     { field: 'pe', headerName: 'P/E', width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' },
@@ -265,6 +292,7 @@ function StockList() {
     setUniverse(nextUniverse);
     setSearch('');
     setSector('all');
+    setZacksFilter('all');
     setRefreshVersion(0);
   };
 
@@ -301,7 +329,7 @@ function StockList() {
 
       <section className="stats-grid" aria-label="Market summary">
         <StatCard eyebrow="Companies tracked" value={loading && !data ? '—' : numberFormatter.format(stocks.length)} detail={data?.label || 'Selected universe'} />
-        <StatCard eyebrow="Advancing today" value={stocks.length ? `${stats.advancerShare}%` : '—'} detail={`${numberFormatter.format(stats.advancers)} companies higher`} tone="positive" />
+        <StatCard eyebrow="Zacks buy signals" value={stocks.length ? numberFormatter.format(stats.strongBuys + stats.buys) : '—'} detail={`${stats.strongBuys} Strong Buy · ${stats.buys} Buy`} tone="positive" />
         <StatCard eyebrow="Median move" value={formatPercent(stats.median)} detail="Across available quotes" tone={stats.median >= 0 ? 'positive' : 'negative'} />
         <StatCard eyebrow="Combined market cap" value={formatCompactCurrency(stats.marketCap || null)} detail="Current company values" />
       </section>
@@ -311,7 +339,7 @@ function StockList() {
           <div>
             <span className="eyebrow">MARKET DIRECTORY</span>
             <h2>{data?.label || universeOptions.find((option) => option.value === universe)?.label}</h2>
-            <p>{formatUpdatedAt(data?.asOf)} · {data?.cacheStatus === 'stale' ? 'Showing cached data' : 'Provider cache active'}</p>
+            <p>{formatUpdatedAt(data?.asOf)} · {data?.cacheStatus === 'stale' ? 'Showing cached data' : 'Provider cache active'} · {numberFormatter.format(data?.zacksCoverage || 0)} Zacks rated</p>
           </div>
           <button className="refresh-button" type="button" onClick={() => setRefreshVersion((version) => version + 1)} disabled={loading}>
             <RefreshIcon spinning={loading} />
@@ -330,6 +358,19 @@ function StockList() {
             <select value={sector} onChange={(event) => setSector(event.target.value)}>
               <option value="all">All sectors</option>
               {sectors.map((sectorName) => <option value={sectorName} key={sectorName}>{sectorName}</option>)}
+            </select>
+          </label>
+          <label className="sector-field rank-field">
+            <span>Zacks rank</span>
+            <select value={zacksFilter} onChange={(event) => setZacksFilter(event.target.value)}>
+              <option value="all">All Zacks ranks</option>
+              <option value="buy-signals">#1–2 Buys</option>
+              <option value="1">#1 Strong Buy</option>
+              <option value="2">#2 Buy</option>
+              <option value="3">#3 Hold</option>
+              <option value="4">#4 Sell</option>
+              <option value="5">#5 Strong Sell</option>
+              <option value="unrated">Not rated</option>
             </select>
           </label>
           <span className="result-count">{numberFormatter.format(filteredStocks.length)} results</span>

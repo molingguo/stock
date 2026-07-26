@@ -4,13 +4,14 @@ A responsive U.S. stock explorer with live S&P 500 constituents and market-cap-r
 
 ## Data architecture
 
-The React app calls only the local `/api/stocks` endpoint. By default, the Node/Express server uses Nasdaq's stock screener for current U.S. quotes and market-cap rankings, plus State Street's daily SPY holdings workbook for current S&P 500 membership. No API key is required.
+The React app calls only the local `/api/stocks` endpoint. By default, the Node/Express server uses Nasdaq's stock screener for current U.S. quotes and market-cap rankings, State Street's daily SPY holdings workbook for current S&P 500 membership, and Zacks for its proprietary 1–5 stock rank. No API key is required.
 
 The server is intentionally conservative with provider usage:
 
 - S&P 500 data uses one Nasdaq universe request and one State Street holdings request.
 - Top 500 and Top 1000 use the same Nasdaq universe and shared Top 1000 cache.
 - Switching from the S&P 500 to a Top universe reuses the already-fetched Nasdaq response.
+- Zacks ranks are requested in sequential batches of at most 200 symbols and cached per ticker for 12 hours, matching their slower update cadence.
 - Successful responses are cached in memory for 15 minutes by default.
 - Concurrent requests share in-flight universe and source requests.
 - Cached data can be served for up to 24 hours if a source is unavailable or rate limiting.
@@ -38,11 +39,13 @@ npm start
 | `FMP_API_KEY` | unset | Server-only credential required when provider is `fmp` |
 | `MARKET_CACHE_MINUTES` | `15` | Fresh provider-response lifetime |
 | `MARKET_STALE_MINUTES` | `1440` | Maximum stale fallback lifetime |
+| `ZACKS_CACHE_MINUTES` | `720` | Fresh Zacks-rank lifetime |
+| `ZACKS_STALE_MINUTES` | `1440` | Maximum stale Zacks-rank fallback lifetime |
 | `PORT` | `3001` | API/production server port |
 
 FMP's free plan currently returns HTTP 402 for the constituent and batch-quote endpoints this app needs. Keep the default public provider unless your FMP subscription includes those endpoints. If you use FMP, do not prefix its key with `REACT_APP_`; doing so would expose it in the browser bundle.
 
-Public-source references: [Nasdaq Stock Screener](https://www.nasdaq.com/market-activity/stocks/screener) and [State Street SPY holdings](https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-500-etf-trust-spy).
+Source references: [Nasdaq Stock Screener](https://www.nasdaq.com/market-activity/stocks/screener), [State Street SPY holdings](https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-500-etf-trust-spy), and [Zacks Rank methodology](https://www.zacks.com/zrank/about-zacks-rank-in-industry.php).
 
 ## Commands
 
@@ -57,4 +60,4 @@ npm run serve      # Serve the API and production build
 
 `GET /api/stocks?universe=sp500|top500|top1000`
 
-Responses include normalized stock rows plus `asOf`, `refreshAfter`, and `cacheStatus` metadata. Quotes may be delayed and are intended for research, not investment advice.
+Responses include normalized stock rows with `zacksRank` and `zacksRankText`, plus `zacksCoverage`, `asOf`, `refreshAfter`, and cache-status metadata. Quotes and ratings may be delayed and are intended for research, not investment advice.

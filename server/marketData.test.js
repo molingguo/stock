@@ -73,6 +73,11 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
         },
       });
     }
+    if (url.hostname === 'quote-feed.zacks.com') {
+      return jsonResponse({
+        AAA: { ticker: 'AAA', zacks_rank: '1', zacks_rank_text: 'Strong Buy' },
+      });
+    }
 
     return {
       ok: true,
@@ -88,8 +93,12 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.count, 1);
   assert.equal(result.stocks[0].symbol, 'AAA');
   assert.equal(result.stocks[0].changePercentage, 2);
+  assert.equal(result.stocks[0].zacksRank, 1);
+  assert.equal(result.stocks[0].zacksRankText, 'Strong Buy');
+  assert.equal(result.zacksCoverage, 1);
   assert.equal(topResult.count, 1);
-  assert.equal(requests.length, 2);
+  assert.equal(topResult.stocks[0].zacksRank, 1);
+  assert.equal(requests.length, 3);
   assert.equal(requests.some((request) => request.includes('financialmodelingprep.com')), false);
 });
 
@@ -97,6 +106,12 @@ test('loads live S&P constituents, batches quotes, and caches the result', async
   const requests = [];
   const fetchImpl = async (url, options) => {
     requests.push({ url, options });
+    if (url.hostname === 'quote-feed.zacks.com') {
+      return jsonResponse({
+        AAA: { zacks_rank: '2', zacks_rank_text: 'Buy' },
+        BBB: { zacks_rank: '3', zacks_rank_text: 'Hold' },
+      });
+    }
     if (url.pathname.endsWith('/sp500-constituent')) {
       return jsonResponse([
         { symbol: 'AAA', name: 'Alpha', sector: 'Tech' },
@@ -113,16 +128,18 @@ test('loads live S&P constituents, batches quotes, and caches the result', async
   const first = await service.getStocks('sp500');
   const second = await service.getStocks('sp500');
 
-  assert.equal(requests.length, 2);
+  assert.equal(requests.length, 3);
   assert.equal(requests[0].options.headers.apikey, 'secret');
   assert.equal(requests[0].url.toString().includes('secret'), false);
   assert.deepEqual(first.stocks.map((stock) => stock.symbol), ['BBB', 'AAA']);
+  assert.equal(first.stocks[1].zacksRankText, 'Buy');
   assert.equal(first.cacheStatus, 'refreshed');
   assert.equal(second.cacheStatus, 'fresh');
 });
 
 test('uses one shared top-1000 cache for top-500 and top-1000 views', async () => {
   let requestCount = 0;
+  let zacksRequestCount = 0;
   const companies = Array.from({ length: 600 }, (_, index) => ({
     symbol: `S${index}`,
     companyName: `Stock ${index}`,
@@ -131,6 +148,13 @@ test('uses one shared top-1000 cache for top-500 and top-1000 views', async () =
   }));
   const fetchImpl = async (url) => {
     requestCount += 1;
+    if (url.hostname === 'quote-feed.zacks.com') {
+      zacksRequestCount += 1;
+      const symbols = url.searchParams.get('t').split(',');
+      return jsonResponse(Object.fromEntries(symbols.map((symbol) => [
+        symbol, { zacks_rank: '3', zacks_rank_text: 'Hold' },
+      ])));
+    }
     if (url.pathname.endsWith('/company-screener')) return jsonResponse(companies);
     const symbols = url.searchParams.get('symbols').split(',');
     return jsonResponse(symbols.map((symbol) => ({ symbol, price: 1 })));
@@ -142,7 +166,8 @@ test('uses one shared top-1000 cache for top-500 and top-1000 views', async () =
 
   assert.equal(top500.count, 500);
   assert.equal(top1000.count, 600);
-  assert.equal(requestCount, 4);
+  assert.equal(requestCount, 7);
+  assert.equal(zacksRequestCount, 3);
 });
 
 test('serves stale data when a refresh fails', async () => {
@@ -150,6 +175,9 @@ test('serves stale data when a refresh fails', async () => {
   let shouldFail = false;
   const fetchImpl = async (url) => {
     if (shouldFail) return jsonResponse({}, 429);
+    if (url.hostname === 'quote-feed.zacks.com') {
+      return jsonResponse({ AAA: { zacks_rank: '1', zacks_rank_text: 'Strong Buy' } });
+    }
     if (url.pathname.endsWith('/sp500-constituent')) {
       return jsonResponse([{ symbol: 'AAA', name: 'Alpha' }]);
     }

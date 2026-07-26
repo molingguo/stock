@@ -139,6 +139,7 @@
 .search-field input:focus, .sector-field select:focus { border-color: #6f988d; box-shadow: 0 0 0 3px rgba(23, 79, 67, 0.08); }
 .field-icon { position: absolute; width: 17px; left: 14px; top: 12px; fill: none; stroke: #84918c; stroke-width: 1.8; stroke-linecap: round; }
 .sector-field { min-width: 190px; position: relative; }
+.rank-field { min-width: 170px; }
 .sector-field > span { position: absolute; z-index: 1; left: 12px; top: -6px; padding: 0 4px; background: white; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; }
 .sector-field select { padding: 0 34px 0 14px; }
 .result-count { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
@@ -159,6 +160,14 @@
 .change-pill.positive { color: #18704f; background: #e5f6ed; }
 .change-pill.negative { color: #a43838; background: #fbeaea; }
 .change-pill.neutral { color: #6d7874; background: #eef1ef; }
+.zacks-rank { display: inline-flex; align-items: center; gap: 5px; min-width: 116px; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.zacks-rank strong { font: inherit; font-weight: 900; }
+.zacks-rank.strong-buy { color: #fff; background: #176045; }
+.zacks-rank.buy { color: #176045; background: #dff3e9; }
+.zacks-rank.hold { color: #765d16; background: #fff3cf; }
+.zacks-rank.sell { color: #913939; background: #fbe6e4; }
+.zacks-rank.strong-sell { color: #fff; background: #a93c3c; }
+.zacks-rank.unavailable { color: #6d7874; background: #eef1ef; }
 
 .mobile-list { padding: 12px; }
 .stock-card { padding: 16px 4px; border-bottom: 1px solid #e8edea; }
@@ -169,6 +178,8 @@
 .stock-card__lead > div span { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stock-card__quote { margin: 15px 0 13px 32px; display: flex; align-items: center; justify-content: space-between; }
 .stock-card__quote > strong { font-family: Georgia, 'Times New Roman', serif; font-size: 21px; }
+.stock-card__quote > div { display: flex; align-items: center; gap: 7px; }
+.stock-card__quote .zacks-rank { min-width: 0; }
 .stock-card dl { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 0 32px; padding-top: 12px; border-top: 1px dashed #e1e7e3; }
 .stock-card dl div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .stock-card dt { color: #8a9691; font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; }
@@ -226,10 +237,12 @@ footer p { margin: 0; }
   .toolbar { min-height: auto; padding: 12px; display: grid; grid-template-columns: 1fr 120px; }
   .search-field { grid-column: 1 / -1; width: 100%; }
   .sector-field { min-width: 0; }
-  .result-count { margin: 0; justify-self: end; }
+  .result-count { grid-column: 1 / -1; margin: 0; justify-self: end; }
   .error-state { margin: 18px 12px; align-items: flex-start; flex-wrap: wrap; }
   .error-state button { margin-left: 50px; }
   footer { flex-direction: column; gap: 6px; padding-inline: 3px; }
+  .stock-card__quote { align-items: flex-start; }
+  .stock-card__quote > div { align-items: flex-end; flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {

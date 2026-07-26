@@ -1,4 +1,5 @@
 const { parseSpyHoldings } = require('./spyHoldings');
+const { createZacksRatingsService } = require('./zacksRatings');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 const NASDAQ_SCREENER_URL = 'https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10000&download=true';
@@ -78,6 +79,7 @@ function createMarketDataService({
   now = () => Date.now(),
   cacheTtlMs = cacheDuration(process.env.MARKET_CACHE_MINUTES, DEFAULT_CACHE_TTL_MS),
   staleTtlMs = cacheDuration(process.env.MARKET_STALE_MINUTES, DEFAULT_STALE_TTL_MS),
+  ratingsService,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
   if (!['public', 'fmp'].includes(provider)) {
@@ -88,6 +90,7 @@ function createMarketDataService({
   const inFlight = new Map();
   const resourceCache = new Map();
   const resourceInFlight = new Map();
+  const zacksRatings = ratingsService || createZacksRatingsService({ fetchImpl, now });
 
   async function fetchWithTimeout(url, options = {}) {
     return fetchImpl(url, { ...options, signal: AbortSignal.timeout(12_000) });
@@ -251,10 +254,27 @@ function createMarketDataService({
       asOf: new Date(entry.fetchedAt).toISOString(),
       refreshAfter: new Date(entry.fetchedAt + cacheTtlMs).toISOString(),
       cacheStatus,
+      ratingsCacheStatus: entry.ratingsCacheStatus,
+      zacksCoverage: stocks.filter((stock) => stock.zacksRank !== null).length,
       sources: provider === 'fmp'
-        ? ['Financial Modeling Prep']
-        : universe === 'sp500' ? ['Nasdaq', 'State Street SPY holdings'] : ['Nasdaq'],
+        ? ['Financial Modeling Prep', 'Zacks']
+        : universe === 'sp500' ? ['Nasdaq', 'State Street SPY holdings', 'Zacks'] : ['Nasdaq', 'Zacks'],
       stocks,
+    };
+  }
+
+  async function enrichWithZacks(stocks) {
+    const result = await zacksRatings.getRatings(stocks.map((stock) => stock.symbol));
+    return {
+      ratingsCacheStatus: result.cacheStatus,
+      stocks: stocks.map((stock) => {
+        const rating = result.ratings.get(normalizeSymbol(stock.symbol));
+        return {
+          ...stock,
+          zacksRank: rating?.rank || null,
+          zacksRankText: rating?.text || '',
+        };
+      }),
     };
   }
 
@@ -262,8 +282,9 @@ function createMarketDataService({
     if (inFlight.has(sourceKey)) return inFlight.get(sourceKey);
     const loader = provider === 'fmp' ? loadFmpUniverse : loadPublicUniverse;
     const pending = loader(sourceKey)
-      .then((stocks) => {
-        const entry = { stocks, fetchedAt: now() };
+      .then(enrichWithZacks)
+      .then(({ stocks, ratingsCacheStatus }) => {
+        const entry = { stocks, ratingsCacheStatus, fetchedAt: now() };
         cache.set(sourceKey, entry);
         return entry;
       })
