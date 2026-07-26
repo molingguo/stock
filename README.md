@@ -20,6 +20,8 @@ Favorites store only a validated list of up to 100 ticker symbols in the browser
 
 The interface is available in English at `/` and Simplified Chinese at the canonical `/zh-CN/` route. The language button in the top-right updates the URL without reloading or repeating market-data requests, preserves query parameters and hash fragments, and supports browser back/forward navigation. Legacy `/zh_CN/` links are accepted and normalized to `/zh-CN/`; AWS Amplify's existing catch-all compute route serves both locale paths without extra configuration.
 
+Chinese mode also uses a curated local catalog of established Chinese corporate and brand names. Mapped names are searchable and included in Chinese CSV exports, while the source English name remains available as hover text; companies without a confidently recognized Chinese name keep their original name. This catalog makes no runtime translation or provider requests.
+
 The Zacks 7 Best Stocks view resolves the report's dated edition, reads the seven symbols from its public edition script, and displays the edition date from the resolved URL. Zacks may challenge automated server requests, so the app falls back to its last verified edition instead of showing an empty view; set `ZACKS_7_BEST_EDITION_URL` to a newly resolved report URL whenever an automated refresh cannot get through. Each browser retains up to eight successfully viewed editions and displays earlier weeks as separate seven-stock tables without making extra Zacks requests.
 
 The server is intentionally conservative with provider usage:

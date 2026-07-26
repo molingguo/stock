@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import App from './App';
 import { createStockCsv, sortStocksForExport } from './StockList';
 import { CHINESE_LOCALE, localeFromPathname, pathForLocale } from './i18n';
+import { companyNameForLocale, getChineseCompanyName } from './companyNamesZh';
 
 const stock = {
   symbol: 'AAPL',
@@ -168,7 +169,13 @@ test('supports canonical Chinese URLs and switches language without reloading da
   expect(window.location.hash).toBe('#top');
   expect(screen.getByText('今日标普 500')).toBeInTheDocument();
   expect(screen.getByPlaceholderText('搜索股票代码或公司')).toBeInTheDocument();
+  expect(screen.getByText('苹果公司')).toHaveAttribute('title', 'Apple Inc.');
   expect(screen.getByRole('button', { name: '切换到英文' })).toHaveTextContent('English');
+
+  fireEvent.change(screen.getByPlaceholderText('搜索股票代码或公司'), { target: { value: '苹果' } });
+  expect(screen.getByText('AAPL')).toBeInTheDocument();
+  expect(screen.queryByText('MSFT')).not.toBeInTheDocument();
+  fireEvent.change(screen.getByPlaceholderText('搜索股票代码或公司'), { target: { value: '' } });
 
   fireEvent.click(screen.getByRole('button', { name: '切换到英文' }));
   expect(window.location.pathname).toBe('/');
@@ -190,6 +197,13 @@ test('maps locale paths using the BCP 47 route', () => {
   expect(pathForLocale('en', '/zh_CN/stocks')).toBe('/stocks');
 });
 
+test('uses curated Chinese company names and preserves unknown source names', () => {
+  expect(getChineseCompanyName('BRK/B')).toBe('伯克希尔·哈撒韦公司');
+  expect(companyNameForLocale(stock, CHINESE_LOCALE)).toBe('苹果公司');
+  expect(companyNameForLocale({ symbol: 'UNKNOWN', name: 'Untranslated Company' }, CHINESE_LOCALE)).toBe('Untranslated Company');
+  expect(companyNameForLocale(stock, 'en')).toBe('Apple Inc.');
+});
+
 test('builds CSV rows in the active table sort order', () => {
   const rows = [
     { ...stock, symbol: 'LOW', name: 'Lower Company', price: 10 },
@@ -205,4 +219,7 @@ test('builds CSV rows in the active table sort order', () => {
   expect(lines[1]).toContain(',8,31,');
   expect(lines[1]).toContain('HIGH,"Higher, Company",20');
   expect(lines[2]).toContain('LOW,Lower Company,10');
+
+  const chineseCsv = createStockCsv([stock], { locale: CHINESE_LOCALE });
+  expect(chineseCsv).toContain('AAPL,苹果公司,200');
 });

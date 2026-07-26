@@ -9,6 +9,7 @@ import {
   translateMarketTerm,
   translateUniverseLabel,
 } from './i18n';
+import { companyNameForLocale } from './companyNamesZh';
 
 const DataGrid = React.lazy(() =>
   import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid }))
@@ -155,7 +156,7 @@ export function createStockCsv(rows, { isEtf = false, allStocks = rows, locale =
     t('csv.yearLow'), t('csv.yearHigh'), t('csv.yearPosition'),
   ];
   const values = rows.map((stock) => [
-    stockRank(stock, allStocks), stock.symbol, stock.name, stock.price, stock.changePercentage,
+    stockRank(stock, allStocks), stock.symbol, companyNameForLocale(stock, locale), stock.price, stock.changePercentage,
     stock.zacksRank, stock.zacksRankText, stock.marketCap, stock.sector,
     ...(!isEtf ? [stock.piotroskiScore, stock.pe] : []),
     stock.yearLow, stock.yearHigh,
@@ -405,6 +406,7 @@ function YearRange({ low, high, price }) {
 }
 
 function TradingViewChart({ stock }) {
+  const { locale } = useI18n();
   const containerRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -427,7 +429,7 @@ function TradingViewChart({ stock }) {
       backgroundColor: '#ffffff',
       gridColor: 'rgba(19, 32, 29, 0.06)',
       style: '1',
-      locale: 'en',
+      locale: locale === CHINESE_LOCALE ? 'zh_CN' : 'en',
       allow_symbol_change: false,
       calendar: false,
       details: false,
@@ -441,13 +443,14 @@ function TradingViewChart({ stock }) {
     container.append(widget, script);
 
     return () => container.replaceChildren();
-  }, [stock]);
+  }, [locale, stock]);
 
   return <div ref={containerRef} className="tradingview-widget-container stock-chart-widget" />;
 }
 
 function StockChartDialog({ stock, onClose }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const displayName = companyNameForLocale(stock, locale);
   const dialogRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -490,7 +493,7 @@ function StockChartDialog({ stock, onClose }) {
             <div>
               <span className="eyebrow">{t('chart.eyebrow')}</span>
               <h2 id="stock-chart-title">{t('chart.title', { symbol: stock.symbol })}</h2>
-              <p>{stock.name}</p>
+              <p title={displayName !== stock.name ? stock.name : undefined}>{displayName}</p>
             </div>
           </div>
           <div className="stock-chart-quote">
@@ -589,6 +592,7 @@ function StatCard({ eyebrow, value, detail, tone = 'default' }) {
 
 function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavorite, favoriteLimitReached }) {
   const { locale, t } = useI18n();
+  const displayName = companyNameForLocale(stock, locale);
   return (
     <article className="stock-card">
       <button
@@ -613,7 +617,7 @@ function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavori
             aria-label={t('chart.openFromName', { symbol: stock.symbol })}
           >
             <strong>{stock.symbol}</strong>
-            <span>{stock.name}</span>
+            <span title={displayName !== stock.name ? stock.name : undefined}>{displayName}</span>
           </button>
         </div>
         <div className="stock-card__quote">
@@ -782,7 +786,11 @@ function StockList() {
   const filteredStocks = React.useMemo(() => {
     const query = search.trim().toLowerCase();
     return stocks.filter((stock) => {
-      const matchesSearch = !query || stock.symbol.toLowerCase().includes(query) || stock.name.toLowerCase().includes(query);
+      const localizedName = companyNameForLocale(stock, locale).toLowerCase();
+      const matchesSearch = !query
+        || stock.symbol.toLowerCase().includes(query)
+        || stock.name.toLowerCase().includes(query)
+        || localizedName.includes(query);
       const matchesSector = sector === 'all' || stock.sector === sector;
       const matchesZacks = zacksFilter === 'all'
         || (zacksFilter === 'buy-signals' && Number.isInteger(stock.zacksRank) && stock.zacksRank <= 2)
@@ -790,7 +798,7 @@ function StockList() {
         || stock.zacksRank === Number(zacksFilter);
       return matchesSearch && matchesSector && matchesZacks;
     });
-  }, [search, sector, stocks, zacksFilter]);
+  }, [locale, search, sector, stocks, zacksFilter]);
   const previousZacksReports = React.useMemo(
     () => zacksReportHistory.filter((report) => report.reportDate !== data?.reportDate).slice(0, MAX_ZACKS_REPORTS - 1),
     [data?.reportDate, zacksReportHistory]
@@ -843,7 +851,12 @@ function StockList() {
             aria-label={t('chart.openFromName', { symbol: row.symbol })}
           >
             <TickerAvatar symbol={row.symbol} logoUrl={row.logoUrl} />
-            <span><strong>{row.symbol}</strong><small>{row.name}</small></span>
+            <span>
+              <strong>{row.symbol}</strong>
+              <small title={companyNameForLocale(row, locale) !== row.name ? row.name : undefined}>
+                {companyNameForLocale(row, locale)}
+              </small>
+            </span>
           </button>
         </div>
       ),
