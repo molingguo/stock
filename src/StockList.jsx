@@ -11,7 +11,7 @@ const pendingRequests = new Map();
 const universeOptions = [
   { value: 'sp500', label: 'S&P 500', description: 'Index constituents' },
   { value: 'popularEtfs', label: 'Popular ETFs', description: 'By current fund assets' },
-  { value: 'top1000', label: 'Top 1000', description: 'Broader U.S. market' },
+  { value: 'extendedMarket', label: 'Extended Market', description: 'Top 1,000 beyond S&P 500' },
 ];
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {

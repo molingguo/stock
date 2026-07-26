@@ -13,7 +13,7 @@ const QUOTE_BATCH_SIZE = 200;
 const UNIVERSES = {
   sp500: { label: 'S&P 500', sourceKey: 'sp500' },
   popularEtfs: { label: 'Popular ETFs', sourceKey: 'popularEtfs' },
-  top1000: { label: 'Top 1000 U.S.', sourceKey: 'top1000', limit: 1000 },
+  extendedMarket: { label: 'U.S. Extended Market', sourceKey: 'extendedMarket' },
 };
 
 function cacheDuration(environmentValue, fallback) {
@@ -231,30 +231,42 @@ function createMarketDataService({
   async function loadFmpUniverse(sourceKey) {
     if (sourceKey === 'popularEtfs') return createPopularEtfRows();
     if (sourceKey === 'sp500') {
-      const companies = await requestFmp('/sp500-constituent');
+      const companies = await getResource('fmpSp500', () => requestFmp('/sp500-constituent'));
       return normalizeFmpStocks(companies, await getFmpQuotes(companies.map((company) => company.symbol)));
     }
-    const companies = await requestFmp('/company-screener', {
-      country: 'US', isEtf: false, isFund: false, isActivelyTrading: true,
-      includeAllShareClasses: false, limit: 1000,
-    });
-    const sorted = companies.filter((company) => company.symbol && asNumber(company.marketCap) !== null)
+    const [companies, holdings] = await Promise.all([
+      requestFmp('/company-screener', {
+        country: 'US', isEtf: false, isFund: false, isActivelyTrading: true,
+        includeAllShareClasses: false, limit: 1000,
+      }),
+      getResource('fmpSp500', () => requestFmp('/sp500-constituent')),
+    ]);
+    const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
+    const extended = companies.filter((company) => company.symbol && asNumber(company.marketCap) !== null)
       .sort((a, b) => Number(b.marketCap) - Number(a.marketCap)).slice(0, 1000);
-    return normalizeFmpStocks(sorted, await getFmpQuotes(sorted.map((company) => company.symbol)));
+    const companiesOutsideSp500 = extended.filter((company) => !sp500Symbols.has(normalizeSymbol(company.symbol)));
+    return normalizeFmpStocks(
+      companiesOutsideSp500,
+      await getFmpQuotes(companiesOutsideSp500.map((company) => company.symbol))
+    );
   }
 
   async function loadPublicUniverse(sourceKey) {
     if (sourceKey === 'popularEtfs') return createPopularEtfRows();
-    const rows = await getResource('nasdaq', requestNasdaq);
-    if (sourceKey === 'top1000') {
+    const [rows, holdings] = await Promise.all([
+      getResource('nasdaq', requestNasdaq),
+      getResource('spyHoldings', requestSpyHoldings),
+    ]);
+    if (sourceKey === 'extendedMarket') {
+      const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
       return rows.filter((row) => row.country === 'United States')
         .map((row) => normalizeNasdaqStock(row))
         .filter((stock) => stock.symbol && stock.price !== null && stock.marketCap !== null)
         .sort((a, b) => b.marketCap - a.marketCap)
-        .slice(0, 1000);
+        .slice(0, 1000)
+        .filter((stock) => !sp500Symbols.has(normalizeSymbol(stock.symbol)));
     }
 
-    const holdings = await getResource('spyHoldings', requestSpyHoldings);
     const rowsBySymbol = new Map(rows.map((row) => [normalizeSymbol(row.symbol), row]));
     const stocks = holdings.map((holding) => {
       const row = rowsBySymbol.get(normalizeSymbol(holding.symbol));
@@ -284,7 +296,7 @@ function createMarketDataService({
         ? ['Zacks']
         : provider === 'fmp'
           ? ['Financial Modeling Prep', 'Zacks']
-          : universe === 'sp500' ? ['Nasdaq', 'State Street SPY holdings', 'Zacks'] : ['Nasdaq', 'Zacks'],
+          : ['Nasdaq', 'State Street SPY holdings', 'Zacks'],
       stocks,
     };
   }

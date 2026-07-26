@@ -69,6 +69,18 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
               sector: 'Technology',
               industry: 'Software',
             },
+            {
+              symbol: 'BBB',
+              name: 'Beta Inc.',
+              lastsale: '$8.00',
+              netchange: '-0.08',
+              pctchange: '-1.00%',
+              volume: '2,000',
+              marketCap: '80',
+              country: 'United States',
+              sector: 'Health Care',
+              industry: 'Biotechnology',
+            },
           ],
         },
       });
@@ -76,6 +88,7 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
     if (url.hostname === 'quote-feed.zacks.com') {
       return jsonResponse({
         AAA: { ticker: 'AAA', zacks_rank: '1', zacks_rank_text: 'Strong Buy', pe_f1: '24.5' },
+        BBB: { ticker: 'BBB', zacks_rank: '3', zacks_rank_text: 'Hold', pe_f1: '18.2' },
       });
     }
 
@@ -88,7 +101,7 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   const service = createMarketDataService({ fetchImpl, parseHoldings: () => [{ symbol: 'AAA' }] });
 
   const result = await service.getStocks('sp500');
-  const topResult = await service.getStocks('top1000');
+  const extendedResult = await service.getStocks('extendedMarket');
 
   assert.equal(result.count, 1);
   assert.equal(result.stocks[0].symbol, 'AAA');
@@ -97,9 +110,12 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.stocks[0].zacksRankText, 'Strong Buy');
   assert.equal(result.stocks[0].pe, 24.5);
   assert.equal(result.zacksCoverage, 1);
-  assert.equal(topResult.count, 1);
-  assert.equal(topResult.stocks[0].zacksRank, 1);
-  assert.equal(requests.length, 3);
+  assert.equal(extendedResult.label, 'U.S. Extended Market');
+  assert.deepEqual(extendedResult.stocks.map((stock) => stock.symbol), ['BBB']);
+  assert.equal(extendedResult.stocks[0].zacksRank, 3);
+  assert.equal(requests.length, 4);
+  assert.equal(requests.filter((request) => request.includes('api.nasdaq.com')).length, 1);
+  assert.equal(requests.filter((request) => request.includes('ssga.com')).length, 1);
   assert.equal(requests.some((request) => request.includes('financialmodelingprep.com')), false);
 });
 
@@ -138,7 +154,7 @@ test('loads live S&P constituents, batches quotes, and caches the result', async
   assert.equal(second.cacheStatus, 'fresh');
 });
 
-test('batches and caches the top-1000 view', async () => {
+test('excludes S&P constituents from the cached top-1000 extended-market view', async () => {
   let requestCount = 0;
   let zacksRequestCount = 0;
   const companies = Array.from({ length: 600 }, (_, index) => ({
@@ -156,18 +172,23 @@ test('batches and caches the top-1000 view', async () => {
         symbol, { zacks_rank: '3', zacks_rank_text: 'Hold' },
       ])));
     }
+    if (url.pathname.endsWith('/sp500-constituent')) {
+      return jsonResponse([{ symbol: 'S0' }, { symbol: 'S1' }]);
+    }
     if (url.pathname.endsWith('/company-screener')) return jsonResponse(companies);
     const symbols = url.searchParams.get('symbols').split(',');
     return jsonResponse(symbols.map((symbol) => ({ symbol, price: 1 })));
   };
   const service = createMarketDataService({ provider: 'fmp', apiKey: 'secret', fetchImpl });
 
-  const top1000 = await service.getStocks('top1000');
-  const cached = await service.getStocks('top1000');
+  const extended = await service.getStocks('extendedMarket');
+  const cached = await service.getStocks('extendedMarket');
 
-  assert.equal(top1000.count, 600);
+  assert.equal(extended.count, 598);
+  assert.equal(extended.label, 'U.S. Extended Market');
+  assert.equal(extended.stocks.some((stock) => stock.symbol === 'S0' || stock.symbol === 'S1'), false);
   assert.equal(cached.cacheStatus, 'fresh');
-  assert.equal(requestCount, 7);
+  assert.equal(requestCount, 8);
   assert.equal(zacksRequestCount, 3);
 });
 
