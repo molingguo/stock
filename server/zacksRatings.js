@@ -26,6 +26,15 @@ function normalizeSymbol(symbol) {
   return String(symbol || '').trim().toUpperCase().replace(/[/-]/g, '.');
 }
 
+function asNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === 'N/A' || trimmed === 'NULL') return null;
+  const parsed = Number(trimmed.replace(/[,$%]/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function chunk(items, size) {
   const groups = [];
   for (let index = 0; index < items.length; index += size) {
@@ -54,6 +63,7 @@ function createZacksRatingsService({
     return {
       cacheStatus,
       ratings: new Map(symbols.map((symbol) => [symbol, cache.get(symbol)?.rating || null])),
+      quotes: new Map(symbols.map((symbol) => [symbol, cache.get(symbol)?.quote || null])),
     };
   }
 
@@ -85,7 +95,16 @@ function createZacksRatingsService({
       const rating = Number.isInteger(rank) && rank >= 1 && rank <= 5
         ? { rank, text: item.zacks_rank_text || RANK_LABELS[rank] }
         : null;
-      return [symbol, rating];
+      const quote = item ? {
+        name: item.name || item.company_short_name || item.ap_short_name || '',
+        price: asNumber(item.last),
+        change: asNumber(item.net_change),
+        changePercentage: asNumber(item.percent_net_change),
+        marketCap: asNumber(item.source?.sungard?.market_cap),
+        volume: asNumber(item.volume),
+        pe: asNumber(item.pe_f1 || item.source?.sungard?.pe_ratio),
+      } : null;
+      return [symbol, { rating, quote }];
     }));
   }
 
@@ -93,10 +112,10 @@ function createZacksRatingsService({
     const collected = new Map();
     for (const group of chunk(symbols, ZACKS_BATCH_SIZE)) {
       const ratings = await requestBatch(group);
-      ratings.forEach((rating, symbol) => collected.set(symbol, rating));
+      ratings.forEach((value, symbol) => collected.set(symbol, value));
     }
     const fetchedAt = now();
-    collected.forEach((rating, symbol) => cache.set(symbol, { rating, fetchedAt }));
+    collected.forEach(({ rating, quote }, symbol) => cache.set(symbol, { rating, quote, fetchedAt }));
   }
 
   async function getRatings(rawSymbols) {

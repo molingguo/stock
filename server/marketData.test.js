@@ -75,7 +75,7 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
     }
     if (url.hostname === 'quote-feed.zacks.com') {
       return jsonResponse({
-        AAA: { ticker: 'AAA', zacks_rank: '1', zacks_rank_text: 'Strong Buy' },
+        AAA: { ticker: 'AAA', zacks_rank: '1', zacks_rank_text: 'Strong Buy', pe_f1: '24.5' },
       });
     }
 
@@ -95,6 +95,7 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.stocks[0].changePercentage, 2);
   assert.equal(result.stocks[0].zacksRank, 1);
   assert.equal(result.stocks[0].zacksRankText, 'Strong Buy');
+  assert.equal(result.stocks[0].pe, 24.5);
   assert.equal(result.zacksCoverage, 1);
   assert.equal(topResult.count, 1);
   assert.equal(topResult.stocks[0].zacksRank, 1);

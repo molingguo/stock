@@ -269,8 +269,10 @@ function createMarketDataService({
       ratingsCacheStatus: result.cacheStatus,
       stocks: stocks.map((stock) => {
         const rating = result.ratings.get(normalizeSymbol(stock.symbol));
+        const quote = result.quotes.get(normalizeSymbol(stock.symbol));
         return {
           ...stock,
+          pe: stock.pe ?? quote?.pe ?? null,
           zacksRank: rating?.rank || null,
           zacksRankText: rating?.text || '',
         };
