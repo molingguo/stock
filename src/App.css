@@ -164,8 +164,9 @@
 .MuiDataGrid-row:hover { background: #f7faf7 !important; }
 .MuiDataGrid-footerContainer { border-color: var(--line) !important; }
 .company-cell { min-width: 0; display: flex; align-items: center; gap: 12px; }
-.stock-detail-link, .stock-card__company-link { color: inherit; text-decoration: none; }
-.stock-detail-link:focus-visible, .stock-card__company-link:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: 2px; }
+.stock-detail-button, .stock-card__company-link { appearance: none; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.stock-detail-button { width: 100%; height: 100%; padding: 0; }
+.stock-detail-button:focus-visible, .stock-card__company-link:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: 2px; }
 .company-cell > span:last-child { min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
 .company-cell strong { font-size: 13px; }
 .company-cell small { display: block; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
@@ -184,6 +185,9 @@
 .year-range__labels { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; font-variant-numeric: tabular-nums; }
 .zacks-rank { display: inline-flex; align-items: center; gap: 5px; min-width: 116px; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1; white-space: nowrap; }
 .zacks-rank strong { font: inherit; font-weight: 900; }
+.zacks-rank-link { position: relative; z-index: 2; text-decoration: none; cursor: pointer; }
+.zacks-rank-link:hover { filter: brightness(0.96); }
+.zacks-rank-link:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: 2px; }
 .zacks-rank.strong-buy { color: #fff; background: #176045; }
 .zacks-rank.buy { color: #176045; background: #dff3e9; }
 .zacks-rank.hold { color: #765d16; background: #fff3cf; }
@@ -199,7 +203,7 @@
 .stock-card__chart-trigger:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: -3px; }
 .stock-card__lead { display: flex; align-items: center; gap: 10px; }
 .stock-card__lead .rank { width: 22px; color: #98a39e; font-size: 11px; text-align: center; }
-.stock-card__company-link { position: relative; z-index: 2; min-width: 0; display: flex; flex-direction: column; }
+.stock-card__company-link { position: relative; z-index: 2; min-width: 0; padding: 0; display: flex; flex-direction: column; }
 .stock-card__company-link span { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stock-card__quote { margin: 15px 0 13px 32px; display: flex; align-items: center; justify-content: space-between; }
 .stock-card__quote > strong { font-family: Georgia, 'Times New Roman', serif; font-size: 21px; }

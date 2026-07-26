@@ -145,6 +145,10 @@ function stockDetailUrl(symbol) {
   return `https://finance.yahoo.com/quote/${encodeURIComponent(yahooSymbol)}/`;
 }
 
+function zacksDetailUrl(symbol) {
+  return `https://www.zacks.com/stock/quote/${encodeURIComponent(String(symbol || '').trim().toUpperCase())}`;
+}
+
 function tradingViewSymbol(stock) {
   const exchange = String(stock?.exchange || '').trim().toUpperCase();
   const exchangePrefix = exchange.includes('NASDAQ') || exchange === 'NSDQ'
@@ -418,13 +422,20 @@ function StockChartDialog({ stock, onClose }) {
   );
 }
 
-function ZacksRank({ rank, text }) {
-  if (!Number.isInteger(rank)) return <span className="zacks-rank unavailable">Not rated</span>;
-  const tone = ['strong-buy', 'buy', 'hold', 'sell', 'strong-sell'][rank - 1];
+function ZacksRank({ rank, text, symbol }) {
+  const isRated = Number.isInteger(rank);
+  const tone = isRated ? ['strong-buy', 'buy', 'hold', 'sell', 'strong-sell'][rank - 1] : 'unavailable';
+  const label = isRated ? `#${rank} ${text}` : 'Not rated';
   return (
-    <span className={`zacks-rank ${tone}`}>
-      <strong>#{rank}</strong>{text}
-    </span>
+    <a
+      className={`zacks-rank zacks-rank-link ${tone}`}
+      href={zacksDetailUrl(symbol)}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`View ${symbol} on Zacks: ${label}`}
+    >
+      {isRated ? <><strong>#{rank}</strong>{text}</> : 'Not rated'}
+    </a>
   );
 }
 
@@ -450,21 +461,20 @@ function StockCard({ stock, rank, isEtf, onOpenChart }) {
         <div className="stock-card__lead">
           <span className="rank">{rank}</span>
           <TickerAvatar symbol={stock.symbol} logoUrl={stock.logoUrl} />
-          <a
+          <button
             className="stock-card__company-link"
-            href={stockDetailUrl(stock.symbol)}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`View ${stock.symbol} on Yahoo Finance`}
+            type="button"
+            onClick={() => onOpenChart(stock)}
+            aria-label={`Open ${stock.symbol} chart from company name`}
           >
             <strong>{stock.symbol}</strong>
             <span>{stock.name}</span>
-          </a>
+          </button>
         </div>
         <div className="stock-card__quote">
           <strong>{formatCurrency(stock.price)}</strong>
           <div>
-            <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} />
+            <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} symbol={stock.symbol} />
             <ChangeValue value={stock.changePercentage} />
           </div>
         </div>
@@ -612,16 +622,15 @@ function StockList() {
       flex: 1.2,
       cellClassName: 'align-center-cell',
       renderCell: ({ row }) => (
-        <a
-          className="company-cell stock-detail-link"
-          href={stockDetailUrl(row.symbol)}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={`View ${row.symbol} on Yahoo Finance`}
+        <button
+          className="company-cell stock-detail-button"
+          type="button"
+          onClick={() => openStockChart(row)}
+          aria-label={`Open ${row.symbol} chart from company name`}
         >
           <TickerAvatar symbol={row.symbol} logoUrl={row.logoUrl} />
           <span><strong>{row.symbol}</strong><small>{row.name}</small></span>
-        </a>
+        </button>
       ),
     },
     { field: 'price', headerName: 'Price', width: 118, type: 'number', valueFormatter: formatCurrency },
@@ -639,7 +648,7 @@ function StockList() {
       width: 154,
       type: 'number',
       cellClassName: 'align-center-cell',
-      renderCell: ({ row }) => <ZacksRank rank={row.zacksRank} text={row.zacksRankText} />,
+      renderCell: ({ row }) => <ZacksRank rank={row.zacksRank} text={row.zacksRankText} symbol={row.symbol} />,
     },
     { field: 'marketCap', headerName: isEtfUniverse ? 'Fund assets' : 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
     { field: 'sector', headerName: isEtfUniverse ? 'Category' : 'Sector', minWidth: 155, flex: 0.8 },
@@ -652,7 +661,7 @@ function StockList() {
       valueGetter: (_value, row) => yearRangePosition(row),
       renderCell: ({ row }) => <YearRange low={row.yearLow} high={row.yearHigh} price={row.price} />,
     },
-  ], [isEtfUniverse, stocks]);
+  ], [isEtfUniverse, openStockChart, stocks]);
 
   const selectUniverse = (nextUniverse) => {
     if (nextUniverse === universe) return;

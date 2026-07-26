@@ -12,7 +12,7 @@ The U.S. Extended Market view ranks U.S. stocks by market cap, takes the top 1,0
 
 The 52-week range and company-logo URL use fields included in the existing batched Zacks quote response, so extracting them does not add provider API requests. Visible logos are lazy-loaded from Zacks' static image host and fall back to the ticker's first letter when unavailable.
 
-Selecting a desktop row or the body of a mobile stock card opens an on-demand TradingView daily chart. The company name remains a direct Yahoo Finance link, and the TradingView widget is not loaded until its dialog opens.
+Selecting a desktop row, company name, or the body of a mobile stock card opens an on-demand TradingView daily chart. Yahoo Finance is linked from inside the chart dialog, while each Zacks-rank badge links directly to that ticker's Zacks quote page; the TradingView widget is not loaded until its dialog opens.
 
 The current universe can be exported as CSV from the table header. Exports include only rows matching the active search, sector, and Zacks-rank filters and preserve the table's selected sort order.
 

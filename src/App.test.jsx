@@ -65,15 +65,15 @@ test('loads, filters, and switches stock universes', async () => {
   render(<App />);
 
   expect(await screen.findAllByText('AAPL')).not.toHaveLength(0);
-  expect(screen.getByRole('link', { name: 'View AAPL on Yahoo Finance' })).toHaveAttribute(
-    'href',
-    'https://finance.yahoo.com/quote/AAPL/'
+  expect(screen.queryByRole('link', { name: 'View AAPL on Yahoo Finance' })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'View AAPL on Zacks: #1 Strong Buy' })).toHaveAttribute(
+    'href', 'https://www.zacks.com/stock/quote/AAPL'
   );
   expect(document.querySelector('img[src="https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png"]')).toBeInTheDocument();
   expect(screen.getAllByRole('img', { name: '52-week range from $120.00 to $220.00; current price $200.00' }).length).toBeGreaterThan(0);
   expect(document.querySelector('script[src*="embed-widget-advanced-chart.js"]')).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getAllByRole('button', { name: 'Open AAPL chart' })[0]);
+  fireEvent.click(screen.getByRole('button', { name: 'Open AAPL chart from company name' }));
   expect(screen.getByRole('dialog', { name: 'AAPL chart' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'View on Yahoo Finance' })).toHaveAttribute('href', 'https://finance.yahoo.com/quote/AAPL/');
   expect(document.querySelector('script[src*="embed-widget-advanced-chart.js"]')).toBeInTheDocument();
