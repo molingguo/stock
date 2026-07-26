@@ -6,7 +6,9 @@ const DataGrid = React.lazy(() =>
 
 const CLIENT_CACHE_TTL_MS = 60_000;
 const ZACKS_REPORT_HISTORY_KEY = 'northstar:zacks-best-history:v1';
+const FAVORITE_SYMBOLS_KEY = 'northstar:favorite-symbols:v1';
 const MAX_ZACKS_REPORTS = 8;
+const MAX_FAVORITES = 100;
 const responseCache = new Map();
 const pendingRequests = new Map();
 
@@ -15,6 +17,7 @@ const universeOptions = [
   { value: 'popularEtfs', label: 'Popular ETFs', description: 'By current fund assets' },
   { value: 'extendedMarket', label: 'Extended Market', description: 'Top 1,000 beyond S&P 500' },
   { value: 'zacksBest', label: '7 Best Stocks', description: 'Weekly 30-day picks' },
+  { value: 'favorites', label: 'Favorites', description: 'Saved in this browser' },
 ];
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -190,6 +193,28 @@ function loadZacksReportHistory() {
   }
 }
 
+function loadFavoriteSymbols() {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(FAVORITE_SYMBOLS_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed
+      .map((symbol) => String(symbol || '').trim().toUpperCase().replace(/[/-]/g, '.'))
+      .filter((symbol) => /^[A-Z][A-Z0-9.]{0,9}$/.test(symbol)))]
+      .slice(0, MAX_FAVORITES);
+  } catch {
+    return [];
+  }
+}
+
+function saveFavoriteSymbols(symbols) {
+  try {
+    window.localStorage.setItem(FAVORITE_SYMBOLS_KEY, JSON.stringify(symbols));
+  } catch {
+    // The in-memory favorites still work when storage is disabled or full.
+  }
+}
+
 function archiveZacksReport(payload, existingReports) {
   if (payload?.universe !== 'zacksBest' || !/^\d{4}-\d{2}-\d{2}$/.test(payload.reportDate || '')) {
     return existingReports;
@@ -215,23 +240,26 @@ function archiveZacksReport(payload, existingReports) {
   return next;
 }
 
-async function fetchUniverse(universe, force = false) {
-  const cached = responseCache.get(universe);
+async function fetchUniverse(universe, { force = false, favoriteSymbols = [] } = {}) {
+  const params = new URLSearchParams({ universe });
+  if (universe === 'favorites' && favoriteSymbols.length) params.set('symbols', favoriteSymbols.join(','));
+  const requestUrl = `/api/stocks?${params.toString()}`;
+  const cached = responseCache.get(requestUrl);
   if (!force && cached && Date.now() - cached.cachedAt < CLIENT_CACHE_TTL_MS) {
     return cached.payload;
   }
-  if (pendingRequests.has(universe)) return pendingRequests.get(universe);
+  if (pendingRequests.has(requestUrl)) return pendingRequests.get(requestUrl);
 
-  const pending = fetch(`/api/stocks?universe=${universe}`)
+  const pending = fetch(requestUrl)
     .then(async (response) => {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail || payload.error || 'Unable to load market data.');
-      responseCache.set(universe, { payload, cachedAt: Date.now() });
+      responseCache.set(requestUrl, { payload, cachedAt: Date.now() });
       return payload;
     })
-    .finally(() => pendingRequests.delete(universe));
+    .finally(() => pendingRequests.delete(requestUrl));
 
-  pendingRequests.set(universe, pending);
+  pendingRequests.set(requestUrl, pending);
   return pending;
 }
 
@@ -471,6 +499,28 @@ function PiotroskiScore({ score, symbol }) {
   );
 }
 
+function FavoriteButton({ symbol, isFavorite, onToggle, disabled = false }) {
+  const action = isFavorite ? 'Remove' : 'Add';
+  return (
+    <button
+      className={isFavorite ? 'favorite-button is-favorite' : 'favorite-button'}
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle(symbol);
+      }}
+      disabled={disabled}
+      aria-pressed={isFavorite}
+      aria-label={`${action} ${symbol} ${isFavorite ? 'from' : 'to'} favorites`}
+      title={disabled ? `Favorites are limited to ${MAX_FAVORITES} stocks` : `${action} ${symbol} ${isFavorite ? 'from' : 'to'} favorites`}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m12 3.7 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 16.72 6.9 19.4l.97-5.68L3.75 9.7l5.7-.83L12 3.7Z" />
+      </svg>
+    </button>
+  );
+}
+
 function StatCard({ eyebrow, value, detail, tone = 'default' }) {
   return (
     <article className={`stat-card ${tone}`}>
@@ -481,7 +531,7 @@ function StatCard({ eyebrow, value, detail, tone = 'default' }) {
   );
 }
 
-function StockCard({ stock, rank, isEtf, onOpenChart }) {
+function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavorite, favoriteLimitReached }) {
   return (
     <article className="stock-card">
       <button
@@ -492,6 +542,12 @@ function StockCard({ stock, rank, isEtf, onOpenChart }) {
       />
         <div className="stock-card__lead">
           <span className="rank">{rank}</span>
+          <FavoriteButton
+            symbol={stock.symbol}
+            isFavorite={isFavorite}
+            onToggle={onToggleFavorite}
+            disabled={!isFavorite && favoriteLimitReached}
+          />
           <TickerAvatar symbol={stock.symbol} logoUrl={stock.logoUrl} />
           <button
             className="stock-card__company-link"
@@ -563,6 +619,7 @@ function StockList() {
   const [zacksFilter, setZacksFilter] = React.useState('all');
   const [refreshVersion, setRefreshVersion] = React.useState(0);
   const [zacksReportHistory, setZacksReportHistory] = React.useState(loadZacksReportHistory);
+  const [favoriteSymbols, setFavoriteSymbols] = React.useState(loadFavoriteSymbols);
   const [selectedStock, setSelectedStock] = React.useState(null);
   const [sortModel, setSortModel] = React.useState([]);
   const isMobile = useMediaLayout('(max-width: 700px)');
@@ -570,11 +627,37 @@ function StockList() {
   const isNarrowTable = useMediaLayout('(max-width: 1000px)');
   const isEtfUniverse = universe === 'popularEtfs';
   const isBestStocksUniverse = universe === 'zacksBest';
+  const isFavoritesUniverse = universe === 'favorites';
+  const favoriteSymbolsKey = favoriteSymbols.join(',');
+  const activeFavoritesKey = isFavoritesUniverse ? favoriteSymbolsKey : '';
+  const favoriteSet = React.useMemo(() => new Set(favoriteSymbols), [favoriteSymbols]);
+  const favoriteLimitReached = favoriteSymbols.length >= MAX_FAVORITES;
 
   const openStockChart = React.useCallback((stock) => setSelectedStock(stock), []);
   const openRowChart = React.useCallback(({ row }, event) => {
     if (event.target?.closest?.('a, button')) return;
     setSelectedStock(row);
+  }, []);
+  const toggleFavorite = React.useCallback((symbol) => {
+    setFavoriteSymbols((current) => {
+      const normalized = String(symbol || '').trim().toUpperCase().replace(/[/-]/g, '.');
+      if (!normalized) return current;
+      const isSaved = current.includes(normalized);
+      if (!isSaved && current.length >= MAX_FAVORITES) return current;
+      const next = isSaved
+        ? current.filter((item) => item !== normalized)
+        : [...current, normalized];
+      saveFavoriteSymbols(next);
+      return next;
+    });
+  }, []);
+
+  React.useEffect(() => {
+    const syncFavorites = (event) => {
+      if (event.key === FAVORITE_SYMBOLS_KEY) setFavoriteSymbols(loadFavoriteSymbols());
+    };
+    window.addEventListener('storage', syncFavorites);
+    return () => window.removeEventListener('storage', syncFavorites);
   }, []);
 
   React.useEffect(() => {
@@ -582,7 +665,10 @@ function StockList() {
     setLoading(true);
     setError('');
 
-    fetchUniverse(universe, refreshVersion > 0)
+    fetchUniverse(universe, {
+      force: refreshVersion > 0,
+      favoriteSymbols: isFavoritesUniverse && activeFavoritesKey ? activeFavoritesKey.split(',') : [],
+    })
       .then((payload) => {
         if (active) setData(payload);
       })
@@ -594,7 +680,7 @@ function StockList() {
       });
 
     return () => { active = false; };
-  }, [universe, refreshVersion]);
+  }, [activeFavoritesKey, isFavoritesUniverse, universe, refreshVersion]);
 
   React.useEffect(() => {
     if (data?.universe !== 'zacksBest') return;
@@ -657,15 +743,23 @@ function StockList() {
       flex: 1.2,
       cellClassName: 'align-center-cell',
       renderCell: ({ row }) => (
-        <button
-          className="company-cell stock-detail-button"
-          type="button"
-          onClick={() => openStockChart(row)}
-          aria-label={`Open ${row.symbol} chart from company name`}
-        >
-          <TickerAvatar symbol={row.symbol} logoUrl={row.logoUrl} />
-          <span><strong>{row.symbol}</strong><small>{row.name}</small></span>
-        </button>
+        <div className="company-cell">
+          <FavoriteButton
+            symbol={row.symbol}
+            isFavorite={favoriteSet.has(row.symbol)}
+            onToggle={toggleFavorite}
+            disabled={!favoriteSet.has(row.symbol) && favoriteLimitReached}
+          />
+          <button
+            className="company-cell__chart stock-detail-button"
+            type="button"
+            onClick={() => openStockChart(row)}
+            aria-label={`Open ${row.symbol} chart from company name`}
+          >
+            <TickerAvatar symbol={row.symbol} logoUrl={row.logoUrl} />
+            <span><strong>{row.symbol}</strong><small>{row.name}</small></span>
+          </button>
+        </div>
       ),
     },
     { field: 'price', headerName: 'Price', width: 100, type: 'number', valueFormatter: formatCurrency },
@@ -705,11 +799,12 @@ function StockList() {
       valueGetter: (_value, row) => yearRangePosition(row),
       renderCell: ({ row }) => <YearRange low={row.yearLow} high={row.yearHigh} price={row.price} />,
     },
-  ], [isEtfUniverse, openStockChart, stocks]);
+  ], [favoriteLimitReached, favoriteSet, isEtfUniverse, openStockChart, stocks, toggleFavorite]);
 
   const selectUniverse = (nextUniverse) => {
     if (nextUniverse === universe) return;
     setUniverse(nextUniverse);
+    setData(null);
     setSearch('');
     setSector('all');
     setZacksFilter('all');
@@ -750,7 +845,9 @@ function StockList() {
               type="button"
             >
               <strong>{option.label}</strong>
-              <span>{option.description}</span>
+              <span>{option.value === 'favorites' && favoriteSymbols.length
+                ? `${favoriteSymbols.length} saved locally`
+                : option.description}</span>
             </button>
           ))}
         </div>
@@ -781,12 +878,13 @@ function StockList() {
       <section className="market-panel">
         <div className="panel-heading">
           <div>
-            <span className="eyebrow">{isBestStocksUniverse ? 'WEEKLY ZACKS REPORT' : 'MARKET DIRECTORY'}</span>
+            <span className="eyebrow">{isBestStocksUniverse ? 'WEEKLY ZACKS REPORT' : isFavoritesUniverse ? 'PERSONAL WATCHLIST' : 'MARKET DIRECTORY'}</span>
             <h2>{data?.label || universeOptions.find((option) => option.value === universe)?.label}</h2>
             <p className="panel-metadata">
               {isBestStocksUniverse && data?.reportDate && <span className="report-date">Report updated {formatReportDate(data.reportDate)}</span>}
               <span>{formatUpdatedAt(data?.asOf)}</span>
               <span>{data?.cacheStatus === 'stale' ? 'Showing cached data' : data?.reportCacheStatus === 'fallback' ? 'Verified report snapshot' : 'Provider cache active'}</span>
+              {isFavoritesUniverse && <span>Symbols saved only in this browser</span>}
               <span>{numberFormatter.format(data?.zacksCoverage || 0)} Zacks rated</span>
               {!isEtfUniverse && (
                 <span>
@@ -856,7 +954,13 @@ function StockList() {
           <LoadingState />
         ) : (
           <>
-            {isMobile ? (
+            {isFavoritesUniverse && !stocks.length ? (
+              <div className="empty-favorites" role="status">
+                <span aria-hidden="true">☆</span>
+                <strong>No favorite stocks yet</strong>
+                <p>Open another market tab and select the star beside any ticker. Your symbols stay in this browser and return here with current cached quotes.</p>
+              </div>
+            ) : isMobile ? (
               <div className="mobile-list" data-testid="mobile-stock-list">
                 {filteredStocks.slice(0, 50).map((stock) => (
                   <StockCard
@@ -865,6 +969,9 @@ function StockList() {
                     rank={stock.marketRank ?? stocks.findIndex((item) => item.symbol === stock.symbol) + 1}
                     isEtf={isEtfUniverse}
                     onOpenChart={openStockChart}
+                    isFavorite={favoriteSet.has(stock.symbol)}
+                    onToggleFavorite={toggleFavorite}
+                    favoriteLimitReached={favoriteLimitReached}
                   />
                 ))}
                 {filteredStocks.length > 50 && <p className="mobile-limit">Showing the first 50 results. Use search or sector filters to narrow the list.</p>}
@@ -932,6 +1039,9 @@ function StockList() {
                       rank={stock.listRank ?? index + 1}
                       isEtf={false}
                       onOpenChart={openStockChart}
+                      isFavorite={favoriteSet.has(stock.symbol)}
+                      onToggleFavorite={toggleFavorite}
+                      favoriteLimitReached={favoriteLimitReached}
                     />
                   ))}
                 </div>

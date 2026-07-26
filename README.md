@@ -1,6 +1,6 @@
 # Northstar Markets
 
-A responsive U.S. market explorer with live S&P 500 constituents, popular ETFs, a market-cap-ranked U.S. Extended Market view, and Zacks' weekly 7 Best Stocks report.
+A responsive U.S. market explorer with live S&P 500 constituents, popular ETFs, a market-cap-ranked U.S. Extended Market view, Zacks' weekly 7 Best Stocks report, and a browser-local favorites watchlist.
 
 ## Data architecture
 
@@ -16,6 +16,8 @@ Selecting a desktop row, company name, or the body of a mobile stock card opens 
 
 The current universe can be exported as CSV from the table header. Exports include only rows matching the active search, sector, and Zacks-rank filters and preserve the table's selected sort order.
 
+Favorites store only a validated list of up to 100 ticker symbols in the browser's local storage. Opening the Favorites tab resolves every saved symbol through one cached bulk quote request, so no database, account, or per-ticker request is required. Favorites are specific to the current browser and device; clearing site data removes them, and they do not synchronize between devices.
+
 The Zacks 7 Best Stocks view resolves the report's dated edition, reads the seven symbols from its public edition script, and displays the edition date from the resolved URL. Zacks may challenge automated server requests, so the app falls back to its last verified edition instead of showing an empty view; set `ZACKS_7_BEST_EDITION_URL` to a newly resolved report URL whenever an automated refresh cannot get through. Each browser retains up to eight successfully viewed editions and displays earlier weeks as separate seven-stock tables without making extra Zacks requests.
 
 The server is intentionally conservative with provider usage:
@@ -23,6 +25,7 @@ The server is intentionally conservative with provider usage:
 - S&P 500 data uses one Nasdaq universe request and one State Street holdings request.
 - Popular ETFs use one Zacks batch for the complete curated universe.
 - The weekly Zacks report is checked at most once per day, then its seven quotes and ranks are loaded in one batch.
+- Favorites are loaded in a single batch and reuse the same per-ticker Zacks cache as the other universes.
 - S&P 500 and U.S. Extended Market views share the same cached Nasdaq and State Street source responses.
 - Zacks ranks, forward P/E, and fallback quote fields are requested in sequential batches of at most 200 symbols and cached per ticker for 12 hours, matching the rank's slower update cadence.
 - Successful responses are cached in memory for 15 minutes by default.
@@ -80,4 +83,6 @@ The repository includes an AWS Amplify Hosting Compute deployment for the Vite f
 
 `GET /api/stocks?universe=sp500|popularEtfs|extendedMarket|zacksBest`
 
-Responses include normalized stock rows with `zacksRank` and `zacksRankText`, plus `zacksCoverage`, `asOf`, `refreshAfter`, and cache-status metadata. The `zacksBest` response also includes `reportDate`, `reportUrl`, `resolvedReportUrl`, and `reportCacheStatus`. Quotes and ratings may be delayed and are intended for research, not investment advice.
+`GET /api/stocks?universe=favorites&symbols=AAPL,MSFT`
+
+Responses include normalized stock rows with `zacksRank` and `zacksRankText`, plus `zacksCoverage`, `asOf`, `refreshAfter`, and cache-status metadata. The `zacksBest` response also includes `reportDate`, `reportUrl`, `resolvedReportUrl`, and `reportCacheStatus`. The favorites endpoint accepts at most 100 validated, comma-separated symbols and stores nothing on the server. Quotes and ratings may be delayed and are intended for research, not investment advice.

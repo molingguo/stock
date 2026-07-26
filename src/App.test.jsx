@@ -32,6 +32,7 @@ const unratedStock = {
 };
 
 test('loads, filters, and switches stock universes', async () => {
+  window.localStorage.removeItem('northstar:favorite-symbols:v1');
   window.localStorage.setItem('northstar:zacks-best-history:v1', JSON.stringify([{
     reportDate: '2026-07-17',
     reportUrl: 'https://www.zacks.com/previous',
@@ -49,11 +50,14 @@ test('loads, filters, and switches stock universes', async () => {
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   }));
-  global.fetch = vi.fn(async (url) => ({
-    ok: true,
-    json: async () => ({
-      universe: url.includes('popularEtfs') ? 'popularEtfs' : url.includes('extendedMarket') ? 'extendedMarket' : url.includes('zacksBest') ? 'zacksBest' : 'sp500',
-      label: url.includes('popularEtfs') ? 'Popular ETFs' : url.includes('extendedMarket') ? 'U.S. Extended Market' : url.includes('zacksBest') ? 'Zacks 7 Best Stocks' : 'S&P 500',
+  global.fetch = vi.fn(async (url) => {
+    const isFavorites = url.includes('universe=favorites');
+    const favoriteSymbols = new URL(url, 'https://example.test').searchParams.get('symbols')?.split(',') || [];
+    return {
+      ok: true,
+      json: async () => ({
+      universe: isFavorites ? 'favorites' : url.includes('popularEtfs') ? 'popularEtfs' : url.includes('extendedMarket') ? 'extendedMarket' : url.includes('zacksBest') ? 'zacksBest' : 'sp500',
+      label: isFavorites ? 'Favorites' : url.includes('popularEtfs') ? 'Popular ETFs' : url.includes('extendedMarket') ? 'U.S. Extended Market' : url.includes('zacksBest') ? 'Zacks 7 Best Stocks' : 'S&P 500',
       asOf: '2026-07-25T16:00:00.000Z',
       reportDate: url.includes('zacksBest') ? '2026-07-24' : undefined,
       resolvedReportUrl: url.includes('zacksBest') ? 'https://www.zacks.com/example?edition=20260724abc' : undefined,
@@ -66,11 +70,14 @@ test('loads, filters, and switches stock universes', async () => {
         nasdaq: { symbol: 'COMPX', name: 'Nasdaq Composite', price: 24975.824, changePercentage: -0.644 },
       },
       sources: ['Nasdaq', 'Zacks'],
-      stocks: url.includes('extendedMarket')
+      stocks: isFavorites
+        ? [stock, unratedStock].filter((item) => favoriteSymbols.includes(item.symbol))
+        : url.includes('extendedMarket')
         ? [{ ...stock, marketRank: 42 }, { ...unratedStock, marketRank: 57 }]
         : [stock, unratedStock],
-    }),
-  }));
+      }),
+    };
+  });
   render(<App />);
 
   expect(await screen.findAllByText('AAPL')).not.toHaveLength(0);
@@ -100,6 +107,9 @@ test('loads, filters, and switches stock universes', async () => {
   );
   expect(screen.getByText('2 SEC F-scores (2025)')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Add AAPL to favorites' }));
+  expect(screen.getByRole('button', { name: 'Remove AAPL from favorites' })).toHaveAttribute('aria-pressed', 'true');
+  expect(JSON.parse(window.localStorage.getItem('northstar:favorite-symbols:v1'))).toEqual(['AAPL']);
 
   fireEvent.change(screen.getByLabelText('Zacks rank'), { target: { value: 'buy-signals' } });
   expect(screen.getByText('1 results')).toBeInTheDocument();
@@ -125,6 +135,14 @@ test('loads, filters, and switches stock universes', async () => {
   expect(screen.getByRole('heading', { name: 'Jul 17, 2026' })).toBeInTheDocument();
   expect(screen.getByText('IBM')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=zacksBest');
+
+  fireEvent.click(screen.getByRole('button', { name: /^Favorites/ }));
+  expect(await screen.findByRole('heading', { name: 'Favorites' })).toBeInTheDocument();
+  expect(screen.getByText('Symbols saved only in this browser')).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=favorites&symbols=AAPL');
+  fireEvent.click(screen.getByRole('button', { name: 'Remove AAPL from favorites' }));
+  expect(await screen.findByText('No favorite stocks yet')).toBeInTheDocument();
+  expect(JSON.parse(window.localStorage.getItem('northstar:favorite-symbols:v1'))).toEqual([]);
 });
 
 test('builds CSV rows in the active table sort order', () => {
