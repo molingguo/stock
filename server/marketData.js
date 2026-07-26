@@ -12,12 +12,14 @@ const SPY_HOLDINGS_URL = 'https://www.ssga.com/library-content/products/fund-dat
 const DEFAULT_CACHE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_STALE_TTL_MS = 24 * 60 * 60 * 1000;
 const QUOTE_BATCH_SIZE = 200;
+const MAX_FAVORITE_SYMBOLS = 100;
 
 const UNIVERSES = {
   sp500: { label: 'S&P 500', sourceKey: 'sp500' },
   popularEtfs: { label: 'Popular ETFs', sourceKey: 'popularEtfs' },
   extendedMarket: { label: 'U.S. Extended Market', sourceKey: 'extendedMarket' },
   zacksBest: { label: 'Zacks 7 Best Stocks', sourceKey: 'zacksBest' },
+  favorites: { label: 'Favorites', sourceKey: 'favorites' },
 };
 
 function cacheDuration(environmentValue, fallback) {
@@ -98,11 +100,11 @@ function createPopularEtfRows() {
   }));
 }
 
-function createSymbolRows(symbols) {
+function createSymbolRows(symbols, sector = 'Zacks weekly picks') {
   return symbols.map((symbol) => ({
     symbol,
     name: symbol,
-    sector: 'Zacks weekly picks',
+    sector,
     industry: '',
     exchange: '',
     price: null,
@@ -351,6 +353,8 @@ function createMarketDataService({
       piotroskiScoreYear: piotroskiScores.getMetadata().scoreYear,
       sources: universe === 'zacksBest'
         ? ['Zacks 7 Best Stocks report', 'Zacks quote feed', 'SEC company filings']
+        : universe === 'favorites'
+        ? ['Zacks quote feed', 'SEC company filings']
         : universe === 'popularEtfs'
         ? ['Zacks']
         : provider === 'fmp'
@@ -423,7 +427,7 @@ function createMarketDataService({
 
   async function getStocks(universe = 'sp500') {
     const config = UNIVERSES[universe];
-    if (!config) throw createProviderError(400, `Unknown universe "${universe}".`);
+    if (!config || universe === 'favorites') throw createProviderError(400, `Unknown universe "${universe}".`);
 
     const cached = cache.get(config.sourceKey);
     const age = cached ? now() - cached.fetchedAt : Infinity;
@@ -436,11 +440,35 @@ function createMarketDataService({
     }
   }
 
-  return { getStocks };
+  async function getFavoriteStocks(rawSymbols = []) {
+    if (!Array.isArray(rawSymbols)) throw createProviderError(400, 'Favorite symbols must be a list.');
+    if (rawSymbols.length > MAX_FAVORITE_SYMBOLS) {
+      throw createProviderError(400, `Favorites are limited to ${MAX_FAVORITE_SYMBOLS} symbols.`);
+    }
+    const symbols = [...new Set(rawSymbols.map((symbol) => normalizeSymbol(symbol)).filter(Boolean))];
+    if (symbols.some((symbol) => !/^[A-Z][A-Z0-9.]{0,9}$/.test(symbol))) {
+      throw createProviderError(400, 'One or more favorite symbols are invalid.');
+    }
+
+    const [enriched, indexesResult] = await Promise.all([
+      enrichWithZacks(createSymbolRows(symbols, 'Saved favorites')),
+      marketIndexes.getIndexes().catch(() => ({ indexes: emptyIndexes(), cacheStatus: 'unavailable' })),
+    ]);
+    const entry = {
+      ...enriched,
+      marketIndexes: indexesResult.indexes,
+      indexesCacheStatus: indexesResult.cacheStatus,
+      fetchedAt: now(),
+    };
+    return buildResponse('favorites', entry, 'refreshed');
+  }
+
+  return { getFavoriteStocks, getStocks };
 }
 
 module.exports = {
   DEFAULT_CACHE_TTL_MS,
+  MAX_FAVORITE_SYMBOLS,
   UNIVERSES,
   createMarketDataService,
 };

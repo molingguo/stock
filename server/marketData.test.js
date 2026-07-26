@@ -299,6 +299,44 @@ test('loads the weekly Zacks report picks with report-date metadata', async () =
   assert.match(result.resolvedReportUrl, /edition=20260724/);
 });
 
+test('loads a validated favorites list through one cached bulk quote request', async () => {
+  const requests = [];
+  const fetchImpl = async (url) => {
+    requests.push(url.searchParams.get('t'));
+    const symbols = url.searchParams.get('t').split(',');
+    return jsonResponse(Object.fromEntries(symbols.map((symbol, index) => [symbol, {
+      name: `${symbol} Company`,
+      last: String(100 + index),
+      percent_net_change: String(index + 1),
+      zacks_rank: '2',
+      zacks_rank_text: 'Buy',
+    }])));
+  };
+  const service = createMarketDataService({ fetchImpl, now: () => 1000 });
+
+  const first = await service.getFavoriteStocks(['aapl', 'MSFT', 'AAPL']);
+  const second = await service.getFavoriteStocks(['AAPL', 'MSFT']);
+
+  assert.deepEqual(first.stocks.map((stock) => stock.symbol), ['AAPL', 'MSFT']);
+  assert.equal(first.label, 'Favorites');
+  assert.equal(first.stocks[0].name, 'AAPL Company');
+  assert.equal(first.stocks[0].sector, 'Saved favorites');
+  assert.equal(second.stocks[1].price, 101);
+  assert.deepEqual(requests, ['AAPL,MSFT', 'SPX,COMPX']);
+});
+
+test('rejects invalid or oversized favorites before calling providers', async () => {
+  const service = createMarketDataService({
+    fetchImpl: async () => assert.fail('fetch should not be called'),
+  });
+
+  await assert.rejects(() => service.getFavoriteStocks(['BAD SYMBOL']), { status: 400 });
+  await assert.rejects(
+    () => service.getFavoriteStocks(Array.from({ length: 101 }, (_, index) => `S${index}`)),
+    { status: 400, message: /limited to 100/ }
+  );
+});
+
 test('serves stale data when a refresh fails', async () => {
   let currentTime = 0;
   let shouldFail = false;

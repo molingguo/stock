@@ -17,7 +17,19 @@ function createApp({ marketData = createMarketDataService() } = {}) {
 
   app.get('/api/stocks', async (request, response) => {
     try {
-      const data = await marketData.getStocks(request.query.universe);
+      const universe = request.query.universe;
+      const rawSymbols = request.query.symbols;
+      if (Array.isArray(rawSymbols)) {
+        const error = new Error('Favorite symbols must use one comma-separated query value.');
+        error.status = 400;
+        throw error;
+      }
+      const symbols = typeof rawSymbols === 'string' && rawSymbols
+        ? rawSymbols.split(',')
+        : [];
+      const data = universe === 'favorites'
+        ? await marketData.getFavoriteStocks(symbols)
+        : await marketData.getStocks(universe);
       response.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
       response.json(data);
     } catch (error) {
