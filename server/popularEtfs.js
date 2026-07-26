@@ -1,0 +1,26 @@
+const POPULAR_ETFS = [
+  ['SPY', 'Broad market'], ['QQQ', 'Broad market'], ['VOO', 'Broad market'],
+  ['IVV', 'Broad market'], ['VTI', 'Broad market'], ['IWM', 'Broad market'],
+  ['DIA', 'Broad market'], ['RSP', 'Broad market'], ['VT', 'Broad market'],
+  ['SCHD', 'Dividend & income'], ['VIG', 'Dividend & income'], ['DGRO', 'Dividend & income'],
+  ['JEPI', 'Dividend & income'], ['JEPQ', 'Dividend & income'],
+  ['VEA', 'International'], ['IEFA', 'International'], ['VWO', 'International'],
+  ['IEMG', 'International'], ['EFA', 'International'], ['EEM', 'International'],
+  ['XLK', 'U.S. sectors'], ['XLF', 'U.S. sectors'], ['XLE', 'U.S. sectors'],
+  ['XLV', 'U.S. sectors'], ['XLI', 'U.S. sectors'], ['XLY', 'U.S. sectors'],
+  ['XLP', 'U.S. sectors'], ['XLU', 'U.S. sectors'], ['XLB', 'U.S. sectors'],
+  ['XLRE', 'U.S. sectors'],
+  ['SMH', 'Technology & themes'], ['SOXX', 'Technology & themes'],
+  ['ARKK', 'Technology & themes'], ['IGV', 'Technology & themes'],
+  ['XBI', 'Technology & themes'], ['IBB', 'Technology & themes'],
+  ['AGG', 'Fixed income'], ['BND', 'Fixed income'], ['TLT', 'Fixed income'],
+  ['IEF', 'Fixed income'], ['SHY', 'Fixed income'], ['SGOV', 'Fixed income'],
+  ['HYG', 'Fixed income'], ['LQD', 'Fixed income'], ['BIL', 'Fixed income'],
+  ['GLD', 'Commodities & crypto'], ['IAU', 'Commodities & crypto'],
+  ['SLV', 'Commodities & crypto'], ['USO', 'Commodities & crypto'],
+  ['BITO', 'Commodities & crypto'], ['IBIT', 'Commodities & crypto'],
+  ['FBTC', 'Commodities & crypto'],
+  ['TQQQ', 'Tactical'], ['SQQQ', 'Tactical'], ['SOXL', 'Tactical'], ['SOXS', 'Tactical'],
+].map(([symbol, category]) => ({ symbol, category }));
+
+module.exports = { POPULAR_ETFS };

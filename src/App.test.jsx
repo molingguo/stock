@@ -32,8 +32,8 @@ test('loads, filters, and switches stock universes', async () => {
   global.fetch = vi.fn(async (url) => ({
     ok: true,
     json: async () => ({
-      universe: url.includes('top1000') ? 'top1000' : 'sp500',
-      label: url.includes('top1000') ? 'Top 1000 U.S.' : 'S&P 500',
+      universe: url.includes('popularEtfs') ? 'popularEtfs' : url.includes('top1000') ? 'top1000' : 'sp500',
+      label: url.includes('popularEtfs') ? 'Popular ETFs' : url.includes('top1000') ? 'Top 1000 U.S.' : 'S&P 500',
       asOf: '2026-07-25T16:00:00.000Z',
       cacheStatus: 'fresh',
       zacksCoverage: 1,
@@ -52,6 +52,10 @@ test('loads, filters, and switches stock universes', async () => {
 
   fireEvent.change(screen.getByPlaceholderText(/search ticker/i), { target: { value: 'missing' } });
   expect(screen.getByText('0 results')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /popular etfs/i }));
+  expect(await screen.findByRole('heading', { name: 'Popular ETFs' })).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=popularEtfs');
 
   fireEvent.click(screen.getByRole('button', { name: /top 1000/i }));
   expect(await screen.findByRole('heading', { name: 'Top 1000 U.S.' })).toBeInTheDocument();

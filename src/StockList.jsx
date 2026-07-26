@@ -10,7 +10,7 @@ const pendingRequests = new Map();
 
 const universeOptions = [
   { value: 'sp500', label: 'S&P 500', description: 'Index constituents' },
-  { value: 'top500', label: 'Top 500', description: 'By U.S. market cap' },
+  { value: 'popularEtfs', label: 'Popular ETFs', description: 'By current fund assets' },
   { value: 'top1000', label: 'Top 1000', description: 'Broader U.S. market' },
 ];
 
@@ -125,7 +125,7 @@ function StatCard({ eyebrow, value, detail, tone = 'default' }) {
   );
 }
 
-function StockCard({ stock, rank }) {
+function StockCard({ stock, rank, isEtf }) {
   return (
     <article className="stock-card">
       <div className="stock-card__lead">
@@ -144,8 +144,8 @@ function StockCard({ stock, rank }) {
         </div>
       </div>
       <dl>
-        <div><dt>Market cap</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
-        <div><dt>Sector</dt><dd>{stock.sector || 'Other'}</dd></div>
+        <div><dt>{isEtf ? 'Fund assets' : 'Market cap'}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
+        <div><dt>{isEtf ? 'Category' : 'Sector'}</dt><dd>{stock.sector || 'Other'}</dd></div>
         <div><dt>Volume</dt><dd>{Number.isFinite(stock.volume) ? numberFormatter.format(stock.volume) : '—'}</dd></div>
       </dl>
     </article>
@@ -157,7 +157,7 @@ function LoadingState() {
     <div className="loading-state" role="status" aria-live="polite">
       <div className="loading-copy">
         <span className="loading-orbit" />
-        <div><strong>Building your market view</strong><span>Fetching and ranking the latest companies…</span></div>
+        <div><strong>Building your market view</strong><span>Fetching and ranking the latest securities…</span></div>
       </div>
       <div className="skeleton-table" aria-hidden="true">
         {Array.from({ length: 7 }, (_, index) => <span key={index} />)}
@@ -193,6 +193,7 @@ function StockList() {
   const [zacksFilter, setZacksFilter] = React.useState('all');
   const [refreshVersion, setRefreshVersion] = React.useState(0);
   const isMobile = useMobileLayout();
+  const isEtfUniverse = universe === 'popularEtfs';
 
   React.useEffect(() => {
     let active = true;
@@ -256,7 +257,7 @@ function StockList() {
     },
     {
       field: 'symbol',
-      headerName: 'Company',
+      headerName: isEtfUniverse ? 'Fund' : 'Company',
       minWidth: 220,
       flex: 1.2,
       cellClassName: 'align-center-cell',
@@ -284,11 +285,11 @@ function StockList() {
       cellClassName: 'align-center-cell',
       renderCell: ({ row }) => <ZacksRank rank={row.zacksRank} text={row.zacksRankText} />,
     },
-    { field: 'marketCap', headerName: 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
-    { field: 'sector', headerName: 'Sector', minWidth: 155, flex: 0.8 },
-    { field: 'pe', headerName: 'P/E', width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' },
+    { field: 'marketCap', headerName: isEtfUniverse ? 'Fund assets' : 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
+    { field: 'sector', headerName: isEtfUniverse ? 'Category' : 'Sector', minWidth: 155, flex: 0.8 },
+    ...(!isEtfUniverse ? [{ field: 'pe', headerName: 'P/E', width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' }] : []),
     { field: 'volume', headerName: 'Volume', width: 110, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? numberFormatter.format(value) : '—' },
-  ], [stocks]);
+  ], [isEtfUniverse, stocks]);
 
   const selectUniverse = (nextUniverse) => {
     if (nextUniverse === universe) return;
@@ -313,9 +314,9 @@ function StockList() {
         <div className="hero__copy">
           <span className="eyebrow">U.S. EQUITY EXPLORER</span>
           <h1>See the market.<br /><em>Find the signal.</em></h1>
-          <p>Explore leading U.S. companies with current constituents, prices, and market-cap rankings in one focused view.</p>
+          <p>Explore leading U.S. stocks and popular ETFs with current prices, rankings, and research signals in one focused view.</p>
         </div>
-        <div className="universe-picker" aria-label="Stock universe">
+        <div className="universe-picker" aria-label="Market universe">
           {universeOptions.map((option) => (
             <button
               className={universe === option.value ? 'active' : ''}
@@ -331,10 +332,10 @@ function StockList() {
       </section>
 
       <section className="stats-grid" aria-label="Market summary">
-        <StatCard eyebrow="Companies tracked" value={loading && !data ? '—' : numberFormatter.format(stocks.length)} detail={data?.label || 'Selected universe'} />
+        <StatCard eyebrow={isEtfUniverse ? 'Funds tracked' : 'Companies tracked'} value={loading && !data ? '—' : numberFormatter.format(stocks.length)} detail={data?.label || 'Selected universe'} />
         <StatCard eyebrow="Zacks buy signals" value={stocks.length ? numberFormatter.format(stats.strongBuys + stats.buys) : '—'} detail={`${stats.strongBuys} Strong Buy · ${stats.buys} Buy`} tone="positive" />
         <StatCard eyebrow="Median move" value={formatPercent(stats.median)} detail="Across available quotes" tone={stats.median >= 0 ? 'positive' : 'negative'} />
-        <StatCard eyebrow="Combined market cap" value={formatCompactCurrency(stats.marketCap || null)} detail="Current company values" />
+        <StatCard eyebrow={isEtfUniverse ? 'Combined fund assets' : 'Combined market cap'} value={formatCompactCurrency(stats.marketCap || null)} detail={isEtfUniverse ? 'Across available funds' : 'Current company values'} />
       </section>
 
       <section className="market-panel">
@@ -353,13 +354,13 @@ function StockList() {
         <div className="toolbar">
           <label className="search-field">
             <SearchIcon />
-            <span className="sr-only">Search companies</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ticker or company" />
+            <span className="sr-only">{isEtfUniverse ? 'Search funds' : 'Search companies'}</span>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={isEtfUniverse ? 'Search ticker or fund' : 'Search ticker or company'} />
           </label>
           <label className="sector-field">
-            <span>Sector</span>
+            <span>{isEtfUniverse ? 'Category' : 'Sector'}</span>
             <select value={sector} onChange={(event) => setSector(event.target.value)}>
-              <option value="all">All sectors</option>
+              <option value="all">{isEtfUniverse ? 'All categories' : 'All sectors'}</option>
               {sectors.map((sectorName) => <option value={sectorName} key={sectorName}>{sectorName}</option>)}
             </select>
           </label>
@@ -392,7 +393,7 @@ function StockList() {
             {isMobile ? (
               <div className="mobile-list" data-testid="mobile-stock-list">
                 {filteredStocks.slice(0, 50).map((stock) => (
-                  <StockCard key={stock.symbol} stock={stock} rank={stocks.findIndex((item) => item.symbol === stock.symbol) + 1} />
+                  <StockCard key={stock.symbol} stock={stock} rank={stocks.findIndex((item) => item.symbol === stock.symbol) + 1} isEtf={isEtfUniverse} />
                 ))}
                 {filteredStocks.length > 50 && <p className="mobile-limit">Showing the first 50 results. Use search or sector filters to narrow the list.</p>}
               </div>

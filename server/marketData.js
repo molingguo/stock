@@ -1,5 +1,6 @@
 const { parseSpyHoldings } = require('./spyHoldings');
 const { createZacksRatingsService } = require('./zacksRatings');
+const { POPULAR_ETFS } = require('./popularEtfs');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 const NASDAQ_SCREENER_URL = 'https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10000&download=true';
@@ -11,7 +12,7 @@ const QUOTE_BATCH_SIZE = 200;
 
 const UNIVERSES = {
   sp500: { label: 'S&P 500', sourceKey: 'sp500' },
-  top500: { label: 'Top 500 U.S.', sourceKey: 'top1000', limit: 500 },
+  popularEtfs: { label: 'Popular ETFs', sourceKey: 'popularEtfs' },
   top1000: { label: 'Top 1000 U.S.', sourceKey: 'top1000', limit: 1000 },
 };
 
@@ -69,6 +70,27 @@ function normalizeNasdaqStock(row, holding) {
     yearHigh: null,
     pe: null,
   };
+}
+
+function createPopularEtfRows() {
+  return POPULAR_ETFS.map(({ symbol, category }) => ({
+    symbol,
+    name: symbol,
+    sector: category,
+    industry: 'Exchange-traded fund',
+    exchange: '',
+    price: null,
+    change: null,
+    changePercentage: null,
+    marketCap: null,
+    volume: null,
+    averageVolume: null,
+    dayLow: null,
+    dayHigh: null,
+    yearLow: null,
+    yearHigh: null,
+    pe: null,
+  }));
 }
 
 function createMarketDataService({
@@ -207,6 +229,7 @@ function createMarketDataService({
   }
 
   async function loadFmpUniverse(sourceKey) {
+    if (sourceKey === 'popularEtfs') return createPopularEtfRows();
     if (sourceKey === 'sp500') {
       const companies = await requestFmp('/sp500-constituent');
       return normalizeFmpStocks(companies, await getFmpQuotes(companies.map((company) => company.symbol)));
@@ -221,6 +244,7 @@ function createMarketDataService({
   }
 
   async function loadPublicUniverse(sourceKey) {
+    if (sourceKey === 'popularEtfs') return createPopularEtfRows();
     const rows = await getResource('nasdaq', requestNasdaq);
     if (sourceKey === 'top1000') {
       return rows.filter((row) => row.country === 'United States')
@@ -256,9 +280,11 @@ function createMarketDataService({
       cacheStatus,
       ratingsCacheStatus: entry.ratingsCacheStatus,
       zacksCoverage: stocks.filter((stock) => stock.zacksRank !== null).length,
-      sources: provider === 'fmp'
-        ? ['Financial Modeling Prep', 'Zacks']
-        : universe === 'sp500' ? ['Nasdaq', 'State Street SPY holdings', 'Zacks'] : ['Nasdaq', 'Zacks'],
+      sources: universe === 'popularEtfs'
+        ? ['Zacks']
+        : provider === 'fmp'
+          ? ['Financial Modeling Prep', 'Zacks']
+          : universe === 'sp500' ? ['Nasdaq', 'State Street SPY holdings', 'Zacks'] : ['Nasdaq', 'Zacks'],
       stocks,
     };
   }
@@ -272,6 +298,12 @@ function createMarketDataService({
         const quote = result.quotes.get(normalizeSymbol(stock.symbol));
         return {
           ...stock,
+          name: quote?.name || stock.name,
+          price: stock.price ?? quote?.price ?? null,
+          change: stock.change ?? quote?.change ?? null,
+          changePercentage: stock.changePercentage ?? quote?.changePercentage ?? null,
+          marketCap: stock.marketCap ?? quote?.marketCap ?? null,
+          volume: stock.volume ?? quote?.volume ?? null,
           pe: stock.pe ?? quote?.pe ?? null,
           zacksRank: rating?.rank || null,
           zacksRankText: rating?.text || '',
@@ -286,7 +318,11 @@ function createMarketDataService({
     const pending = loader(sourceKey)
       .then(enrichWithZacks)
       .then(({ stocks, ratingsCacheStatus }) => {
-        const entry = { stocks, ratingsCacheStatus, fetchedAt: now() };
+        const normalizedStocks = sourceKey === 'popularEtfs'
+          ? stocks.filter((stock) => stock.price !== null)
+            .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0) || (b.volume || 0) - (a.volume || 0))
+          : stocks;
+        const entry = { stocks: normalizedStocks, ratingsCacheStatus, fetchedAt: now() };
         cache.set(sourceKey, entry);
         return entry;
       })

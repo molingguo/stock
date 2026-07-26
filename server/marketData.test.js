@@ -138,7 +138,7 @@ test('loads live S&P constituents, batches quotes, and caches the result', async
   assert.equal(second.cacheStatus, 'fresh');
 });
 
-test('uses one shared top-1000 cache for top-500 and top-1000 views', async () => {
+test('batches and caches the top-1000 view', async () => {
   let requestCount = 0;
   let zacksRequestCount = 0;
   const companies = Array.from({ length: 600 }, (_, index) => ({
@@ -162,13 +162,56 @@ test('uses one shared top-1000 cache for top-500 and top-1000 views', async () =
   };
   const service = createMarketDataService({ provider: 'fmp', apiKey: 'secret', fetchImpl });
 
-  const top500 = await service.getStocks('top500');
   const top1000 = await service.getStocks('top1000');
+  const cached = await service.getStocks('top1000');
 
-  assert.equal(top500.count, 500);
   assert.equal(top1000.count, 600);
+  assert.equal(cached.cacheStatus, 'fresh');
   assert.equal(requestCount, 7);
   assert.equal(zacksRequestCount, 3);
+});
+
+test('loads popular ETFs from one quote batch and orders them by live fund assets', async () => {
+  const requests = [];
+  const fetchImpl = async (url) => {
+    requests.push(url.toString());
+    assert.equal(url.hostname, 'quote-feed.zacks.com');
+    return jsonResponse({
+      SPY: {
+        name: 'State Street SPDR S&P 500 ETF Trust',
+        ticker_type: 'E',
+        last: '700',
+        volume: '40000000',
+        percent_net_change: '0.5',
+        zacks_rank: '2',
+        zacks_rank_text: 'Buy',
+        source: { sungard: { market_cap: '700000000000' } },
+      },
+      QQQ: {
+        name: 'Invesco QQQ',
+        ticker_type: 'E',
+        last: '600',
+        volume: '50000000',
+        percent_net_change: '-0.25',
+        zacks_rank: '1',
+        zacks_rank_text: 'Strong Buy',
+        source: { sungard: { market_cap: '400000000000' } },
+      },
+    });
+  };
+  const service = createMarketDataService({ fetchImpl });
+
+  const result = await service.getStocks('popularEtfs');
+  const cached = await service.getStocks('popularEtfs');
+
+  assert.deepEqual(result.stocks.map((stock) => stock.symbol), ['SPY', 'QQQ']);
+  assert.equal(result.label, 'Popular ETFs');
+  assert.equal(result.stocks[0].sector, 'Broad market');
+  assert.equal(result.stocks[0].marketCap, 700000000000);
+  assert.equal(result.stocks[0].zacksRank, 2);
+  assert.equal(result.sources.includes('Nasdaq'), false);
+  assert.equal(cached.cacheStatus, 'fresh');
+  assert.equal(requests.length, 1);
 });
 
 test('serves stale data when a refresh fails', async () => {

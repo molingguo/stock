@@ -1,17 +1,19 @@
 # Northstar Markets
 
-A responsive U.S. stock explorer with live S&P 500 constituents and market-cap-ranked Top 500 and Top 1000 views.
+A responsive U.S. market explorer with live S&P 500 constituents, popular ETFs, and a market-cap-ranked Top 1000 view.
 
 ## Data architecture
 
-The React app calls only the local `/api/stocks` endpoint. By default, the Node/Express server uses Nasdaq's stock screener for current U.S. quotes and market-cap rankings, State Street's daily SPY holdings workbook for current S&P 500 membership, and Zacks for its proprietary 1–5 stock rank. No API key is required.
+The React app calls only the local `/api/stocks` endpoint. By default, the Node/Express server uses Nasdaq's stock screener for current U.S. quotes and market-cap rankings, State Street's daily SPY holdings workbook for current S&P 500 membership, and Zacks for its proprietary 1–5 rank and forward P/E data. No API key is required.
+
+The Popular ETFs view uses a curated, diversified set of widely followed U.S.-listed funds and orders the available funds by current fund assets. Live price, change, volume, fund assets, and available Zacks ranks come from one cached quote-feed batch; P/E is intentionally hidden because it is not a meaningful or consistently available fund-level metric.
 
 The server is intentionally conservative with provider usage:
 
 - S&P 500 data uses one Nasdaq universe request and one State Street holdings request.
-- Top 500 and Top 1000 use the same Nasdaq universe and shared Top 1000 cache.
-- Switching from the S&P 500 to a Top universe reuses the already-fetched Nasdaq response.
-- Zacks ranks are requested in sequential batches of at most 200 symbols and cached per ticker for 12 hours, matching their slower update cadence.
+- Popular ETFs use one Zacks batch for the complete curated universe.
+- Switching from the S&P 500 to Top 1000 reuses the already-fetched Nasdaq response.
+- Zacks ranks, forward P/E, and fallback quote fields are requested in sequential batches of at most 200 symbols and cached per ticker for 12 hours, matching the rank's slower update cadence.
 - Successful responses are cached in memory for 15 minutes by default.
 - Concurrent requests share in-flight universe and source requests.
 - Cached data can be served for up to 24 hours if a source is unavailable or rate limiting.
@@ -58,6 +60,6 @@ npm run serve      # Serve the API and production build
 
 ## API
 
-`GET /api/stocks?universe=sp500|top500|top1000`
+`GET /api/stocks?universe=sp500|popularEtfs|top1000`
 
 Responses include normalized stock rows with `zacksRank` and `zacksRankText`, plus `zacksCoverage`, `asOf`, `refreshAfter`, and cache-status metadata. Quotes and ratings may be delayed and are intended for research, not investment advice.
