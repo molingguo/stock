@@ -17,7 +17,7 @@ The following deployment automation is already implemented:
 - `amplify.yml` builds the application with Node.js 22 and publishes `.amplify-hosting`.
 - `deploy-manifest.json` sends static assets through Amplify's CDN and all `/api/*` requests through Hosting Compute.
 - `scripts/amplifyServer.js` starts Express on Amplify's required port.
-- `scripts/buildAmplify.js` assembles the static and compute artifacts, installs production-only dependencies, copies only approved non-secret runtime settings, and enforces Amplify's 220 MB compute limit.
+- `scripts/buildAmplify.js` assembles the static and compute artifacts, installs production-only dependencies, copies the approved runtime settings into the server-only compute bundle, and enforces Amplify's 220 MB compute limit.
 - `npm run build:amplify` produces the complete deployment artifact.
 - `npm run refresh:scores` refreshes a generated Piotroski F-score cache from SEC bulk XBRL frames before Amplify packages the server.
 - `.amplify-hosting` is excluded from Git.
@@ -58,6 +58,11 @@ Configure these variables before pushing the deployment commit so the first auto
 | `ZACKS_7_BEST_CACHE_MINUTES` | `1440` |
 | `INDEX_CACHE_MINUTES` | `15` |
 | `INDEX_STALE_MINUTES` | `1440` |
+| `ALPHA_VANTAGE_API_KEY` | Your Alpha Vantage API key |
+| `ETF_HOLDINGS_CACHE_MINUTES` | `1440` |
+| `ETF_HOLDINGS_STALE_MINUTES` | `10080` |
+
+Create a free key at [Alpha Vantage](https://www.alphavantage.co/support/#api-key) if you do not already have one. The key enables the ETF Holdings tab only; all charts and existing market tables continue working without it. Keep the variable name exactly `ALPHA_VANTAGE_API_KEY`—never prefix it with `VITE_` or `REACT_APP_`, because those prefixes are intended for browser-visible values.
 
 7. Apply the values to all branches, or add a `main` branch override if other branches need different settings.
 8. Select **Save**.
@@ -184,11 +189,13 @@ The first uncached request can take longer because it retrieves and enriches the
 1. Open the main application URL.
 2. Confirm that the S&P 500 table loads.
 3. Open **Popular ETFs** and confirm that prices and available Zacks ranks appear.
-4. Open **Extended Market** and confirm that its row numbers preserve the original top-1000 ranks.
-5. Open **7 Best Stocks** and confirm that the report date and seven tickers appear.
-6. Confirm that available stock rows show an SEC-derived **F-score** between 0 and 9 and that ETFs show no score.
-7. Test at a mobile viewport or on a phone.
-8. Open the browser Network panel and confirm `/api/stocks?...` requests return HTTP 200 with JSON.
+4. Select an ETF name, confirm the modal chart loads, open **Holdings**, and confirm portfolio metrics and positions appear.
+5. Close and reopen the same ETF Holdings tab, then confirm the browser Network panel does not make another `/api/etf-holdings` request during the 24-hour browser-cache window.
+6. Open **Extended Market** and confirm that its row numbers preserve the original top-1000 ranks.
+7. Open **7 Best Stocks** and confirm that the report date and seven tickers appear.
+8. Confirm that available stock rows show an SEC-derived **F-score** between 0 and 9 and that ETFs show no score.
+9. Test at a mobile viewport or on a phone.
+10. Open the browser Network panel and confirm `/api/stocks?...` requests return HTTP 200 with JSON.
 
 ## Troubleshooting
 
@@ -217,13 +224,23 @@ The Zacks report may show `Verified report snapshot`. This is expected when Zack
 
 The S&P 500 and Nasdaq Composite summary cards use one combined index request cached for 15 minutes. If that request fails, the stock table continues loading and a cached index value is used for up to 24 hours; without a cached value, only the two index cards show unavailable data.
 
+### The ETF Holdings tab asks for an API key
+
+Confirm `ALPHA_VANTAGE_API_KEY` exists in the Amplify `main` branch environment, then select **Redeploy this version** so the build can package the value into the server-only compute runtime. Verify the endpoint directly:
+
+```text
+https://YOUR_DOMAIN/api/etf-holdings?symbol=SPY
+```
+
+It should return JSON with `"provider":"Alpha Vantage"` and a `holdings` array. A provider limit response is served as an error only when no cache is available; a previously retrieved profile remains eligible as a stale fallback for seven days.
+
 ### The compute artifact exceeds 220 MB
 
 The build script stops before deployment when this happens. Review newly added production dependencies and ensure frontend-only libraries have not unnecessarily expanded the server artifact.
 
-## Security and scaling notes
+## Security, caching, and scaling notes
 
-The deployment packager copies only this non-secret allowlist into the compute runtime:
+The deployment packager copies only this explicit allowlist into the compute runtime:
 
 ```text
 MARKET_DATA_PROVIDER
@@ -235,11 +252,14 @@ ZACKS_7_BEST_CACHE_MINUTES
 ZACKS_7_BEST_EDITION_URL
 INDEX_CACHE_MINUTES
 INDEX_STALE_MINUTES
+ALPHA_VANTAGE_API_KEY
+ETF_HOLDINGS_CACHE_MINUTES
+ETF_HOLDINGS_STALE_MINUTES
 ```
 
-It deliberately excludes `FMP_API_KEY` and every unrecognized environment variable. Do not modify that allowlist to include credentials because Amplify build values can appear in deployment artifacts.
+`ALPHA_VANTAGE_API_KEY` is written only inside the Hosting Compute artifact and is never copied to Vite's static files or returned by an API response. Access to Amplify settings, build logs, and deployment artifacts should still be restricted as for any server credential. The packager deliberately excludes `FMP_API_KEY` and every unrecognized environment variable.
 
-The application retains its in-memory provider cache, but each Amplify compute instance has a separate cache. That is appropriate for light traffic. If usage grows substantially, move provider responses into DynamoDB so all compute instances share one cache.
+ETF holdings are requested only after a visitor opens the Holdings tab. The browser local-storage cache, Amplify CDN response cache, per-instance 24-hour memory cache, in-flight request deduplication, and seven-day stale fallback all reduce upstream calls. Each Amplify compute instance still has a separate memory cache, but the CDN cache normally shares the successful response before another instance reaches Alpha Vantage. This is appropriate for light traffic. If usage grows substantially, move provider responses into DynamoDB so all compute instances share one cache.
 
 Refer to [AWS Amplify pricing](https://aws.amazon.com/amplify/pricing/) for current Hosting Compute allowances and rates.
 

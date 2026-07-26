@@ -82,6 +82,7 @@ function normalizeNasdaqStock(row, holding) {
 function createPopularEtfRows() {
   return POPULAR_ETFS.map(({ symbol, category }) => ({
     symbol,
+    securityType: 'ETF',
     name: symbol,
     sector: category,
     industry: 'Exchange-traded fund',

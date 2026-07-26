@@ -318,10 +318,52 @@ html[lang='zh-CN'] .eyebrow { letter-spacing: 0.18em; }
 .stock-chart-close { width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 12px; background: white; color: var(--ink); font: 300 27px/1 Georgia, serif; cursor: pointer; }
 .stock-chart-close:hover { border-color: #a9b9b2; background: #f7faf7; }
 .stock-chart-close:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: 2px; }
-.stock-chart-body { flex: 1; min-height: 420px; padding: 14px 16px 0; }
+.stock-detail-tabs { padding: 0 24px; display: flex; gap: 22px; border-bottom: 1px solid var(--line); background: rgba(246, 249, 246, 0.7); }
+.stock-detail-tabs button { position: relative; min-height: 48px; padding: 2px 1px 0; border: 0; background: transparent; color: var(--muted); font: 800 11px/1 system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.stock-detail-tabs button::after { content: ''; position: absolute; right: 0; bottom: -1px; left: 0; height: 3px; border-radius: 3px 3px 0 0; background: transparent; }
+.stock-detail-tabs button:hover, .stock-detail-tabs button.is-active { color: var(--forest); }
+.stock-detail-tabs button.is-active::after { background: var(--lime); }
+.stock-detail-tabs button:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: 2px; }
+.stock-chart-body { flex: 1; min-height: 420px; padding: 14px 16px 0; overflow: hidden; }
+.stock-detail-panel { width: 100%; height: 100%; }
 .stock-chart-widget, .stock-chart-widget .tradingview-widget-container__widget { width: 100%; height: 100%; }
 .stock-chart-attribution { margin: 0; padding: 7px 20px 10px; color: var(--muted); font-size: 9px; text-align: right; }
 .stock-chart-attribution a { color: inherit; text-underline-offset: 2px; }
+.etf-holdings-panel { height: 100%; padding: 4px 4px 14px; display: flex; flex-direction: column; overflow: auto; scrollbar-gutter: stable; }
+.etf-holdings-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.etf-holdings-summary article { min-height: 78px; padding: 15px 17px; display: flex; flex-direction: column; justify-content: center; gap: 5px; border: 1px solid var(--line); border-radius: 14px; background: #f8faf8; }
+.etf-holdings-summary span { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.etf-holdings-summary strong { color: var(--ink); font-family: Georgia, 'Times New Roman', serif; font-size: 21px; font-weight: 500; }
+.etf-holdings-heading { padding: 22px 5px 13px; display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; }
+.etf-holdings-heading h3 { margin: 4px 0 2px; font-family: Georgia, 'Times New Roman', serif; font-size: 23px; font-weight: 500; }
+.etf-holdings-heading p { margin: 0; color: var(--muted); font-size: 10px; }
+.etf-holdings-meta { display: flex; align-items: center; justify-content: flex-end; gap: 10px; color: var(--muted); font-size: 9px; white-space: nowrap; }
+.etf-holdings-meta a { color: var(--forest); font-weight: 800; text-underline-offset: 2px; }
+.cache-badge { padding: 5px 8px; border-radius: 999px; background: var(--gold-soft); color: #745d22; font-weight: 800; }
+.etf-holdings-table-wrap { min-height: 240px; border: 1px solid var(--line); border-radius: 14px; overflow: visible; }
+.etf-holdings-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.etf-holdings-table th { position: sticky; top: 0; z-index: 1; padding: 11px 13px; border-bottom: 1px solid var(--line); background: #f3f7f3; color: var(--muted); font-size: 9px; letter-spacing: 0.08em; text-align: left; text-transform: uppercase; }
+.etf-holdings-table th:first-child { width: 48px; }
+.etf-holdings-table th:nth-child(2) { width: 42%; }
+.etf-holdings-table th:last-child { width: 190px; }
+.etf-holdings-table td { height: 56px; padding: 8px 13px; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 10px; vertical-align: middle; }
+.etf-holdings-table tbody tr:last-child td { border-bottom: 0; }
+.etf-holdings-table tbody tr:hover { background: rgba(23, 79, 67, 0.025); }
+.etf-holdings-table td:first-child { color: var(--muted); }
+.etf-holdings-table td:nth-child(2) a, .etf-holdings-table td:nth-child(2) > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; color: inherit; text-decoration: none; }
+.etf-holdings-table td:nth-child(2) a:hover strong { color: var(--forest); text-decoration: underline; text-underline-offset: 2px; }
+.etf-holdings-table td:nth-child(2) strong { font-size: 11px; }
+.etf-holdings-table td:nth-child(2) span { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+.holding-weight { display: grid; grid-template-columns: minmax(50px, 1fr) 55px; align-items: center; gap: 10px; }
+.holding-weight > span { height: 5px; overflow: hidden; border-radius: 999px; background: #e2eae5; }
+.holding-weight i { display: block; height: 100%; border-radius: inherit; background: var(--forest); }
+.holding-weight strong { text-align: right; }
+.etf-holdings-source { margin: 10px 4px 0; color: var(--muted); font-size: 9px; }
+.etf-holdings-state { height: 100%; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--muted); text-align: center; }
+.etf-holdings-state strong { color: var(--ink); font-size: 14px; }
+.etf-holdings-state > span:last-child { max-width: 470px; font-size: 11px; line-height: 1.55; }
+.etf-holdings-state button { margin-top: 7px; padding: 10px 16px; border: 0; border-radius: 10px; background: var(--forest); color: white; font-size: 10px; font-weight: 800; cursor: pointer; }
+.etf-holdings-state.is-error strong { color: #a93636; }
 
 footer { padding: 24px 4px 0; display: flex; justify-content: space-between; gap: 24px; color: #7a8681; font-size: 10px; }
 footer p { margin: 0; }
@@ -385,8 +427,25 @@ footer p { margin: 0; }
   .stock-chart-quote { grid-column: 1 / 2; }
   .stock-chart-quote > strong { font-size: 19px; }
   .stock-chart-yahoo { grid-column: 2 / 4; justify-self: end; }
+  .stock-detail-tabs { padding-inline: 15px; gap: 20px; }
+  .stock-detail-tabs button { min-height: 43px; }
   .stock-chart-body { min-height: 0; padding: 8px 8px 0; }
   .stock-chart-attribution { padding: 6px 12px 9px; }
+  .etf-holdings-panel { padding: 2px 0 10px; }
+  .etf-holdings-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .etf-holdings-summary article { min-height: 66px; padding: 11px 13px; border-radius: 11px; }
+  .etf-holdings-summary strong { font-size: 18px; }
+  .etf-holdings-heading { padding: 18px 3px 11px; align-items: flex-start; flex-direction: column; gap: 8px; }
+  .etf-holdings-heading h3 { font-size: 21px; }
+  .etf-holdings-meta { width: 100%; justify-content: flex-start; flex-wrap: wrap; white-space: normal; }
+  .etf-holdings-table-wrap { min-height: 210px; border-radius: 11px; }
+  .etf-holdings-table th, .etf-holdings-table td { padding-inline: 9px; }
+  .etf-holdings-table th:first-child { width: 36px; }
+  .etf-holdings-table th:nth-child(2) { width: auto; }
+  .etf-holdings-table th:nth-child(3), .etf-holdings-table td:nth-child(3) { display: none; }
+  .etf-holdings-table th:last-child { width: 105px; }
+  .holding-weight { grid-template-columns: 1fr; gap: 2px; }
+  .holding-weight strong { text-align: left; }
   footer { flex-direction: column; gap: 6px; padding-inline: 3px; }
 }
 

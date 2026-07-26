@@ -16,12 +16,19 @@ const DataGrid = React.lazy(() =>
 );
 
 const CLIENT_CACHE_TTL_MS = 60_000;
+const ETF_HOLDINGS_CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
+const ETF_HOLDINGS_CLIENT_STALE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const ETF_HOLDINGS_ERROR_TTL_MS = 5 * 60 * 1000;
+const ETF_HOLDINGS_CACHE_KEY_PREFIX = 'northstar:etf-holdings:v1:';
 const ZACKS_REPORT_HISTORY_KEY = 'northstar:zacks-best-history:v1';
 const FAVORITE_SYMBOLS_KEY = 'northstar:favorite-symbols:v1';
 const MAX_ZACKS_REPORTS = 8;
 const MAX_FAVORITES = 100;
 const responseCache = new Map();
 const pendingRequests = new Map();
+const etfHoldingsResponseCache = new Map();
+const pendingEtfHoldingsRequests = new Map();
+const etfHoldingsErrorCache = new Map();
 
 const I18nContext = React.createContext({
   locale: DEFAULT_LOCALE,
@@ -218,17 +225,95 @@ function piotroskiDetailUrl(symbol) {
   return `https://stockanalysis.com/stocks/${encodeURIComponent(stockAnalysisSymbol)}/statistics/`;
 }
 
-function tradingViewSymbol(stock) {
+const ETF_TRADING_VIEW_PREFIXES = {
+  FBTC: 'CBOE',
+  IBB: 'NASDAQ',
+  IBIT: 'NASDAQ',
+  IGV: 'NASDAQ',
+  JEPQ: 'NASDAQ',
+  QQQ: 'NASDAQ',
+  SOXX: 'NASDAQ',
+  SQQQ: 'NASDAQ',
+  TQQQ: 'NASDAQ',
+};
+
+export function tradingViewSymbol(stock) {
   const exchange = String(stock?.exchange || '').trim().toUpperCase();
-  const exchangePrefix = exchange.includes('NASDAQ') || exchange === 'NSDQ'
-    ? 'NASDAQ'
-    : exchange.includes('NYSE')
-      ? 'NYSE'
-      : exchange.includes('AMEX') || exchange.includes('ARCA')
-        ? 'AMEX'
-        : '';
   const symbol = String(stock?.symbol || '').trim().toUpperCase();
+  const isEtf = stock?.securityType === 'ETF';
+  const exchangePrefix = isEtf
+    ? ETF_TRADING_VIEW_PREFIXES[symbol] || 'AMEX'
+    : (exchange.includes('NASDAQ') || exchange === 'NSDQ'
+    ? 'NASDAQ'
+    : exchange.includes('AMEX') || exchange.includes('ARCA')
+        ? 'AMEX'
+        : exchange.includes('BATS') || exchange.includes('BZX') || exchange.includes('CBOE')
+          ? 'CBOE'
+          : exchange.includes('NYSE')
+            ? 'NYSE'
+            : '');
   return exchangePrefix ? `${exchangePrefix}:${symbol}` : symbol;
+}
+
+function etfHoldingsCacheEntry(symbol) {
+  const normalizedSymbol = String(symbol || '').trim().toUpperCase();
+  const memoryEntry = etfHoldingsResponseCache.get(normalizedSymbol);
+  if (memoryEntry) return memoryEntry;
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(`${ETF_HOLDINGS_CACHE_KEY_PREFIX}${normalizedSymbol}`) || 'null');
+    if (parsed?.payload?.symbol !== normalizedSymbol || !Array.isArray(parsed.payload.holdings) || !Number.isFinite(parsed.cachedAt)) {
+      return null;
+    }
+    etfHoldingsResponseCache.set(normalizedSymbol, parsed);
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveEtfHoldingsCache(symbol, payload) {
+  const entry = { payload, cachedAt: Date.now() };
+  etfHoldingsResponseCache.set(symbol, entry);
+  try {
+    window.localStorage.setItem(`${ETF_HOLDINGS_CACHE_KEY_PREFIX}${symbol}`, JSON.stringify(entry));
+  } catch {
+    // The in-memory cache still prevents repeated requests if browser storage is full or unavailable.
+  }
+}
+
+export async function fetchEtfHoldings(rawSymbol, { force = false } = {}) {
+  const symbol = String(rawSymbol || '').trim().toUpperCase();
+  const cached = etfHoldingsCacheEntry(symbol);
+  const age = cached ? Date.now() - cached.cachedAt : Infinity;
+  if (!force && age < ETF_HOLDINGS_CLIENT_TTL_MS) {
+    return { ...cached.payload, clientCacheStatus: 'fresh' };
+  }
+  const cachedError = etfHoldingsErrorCache.get(symbol);
+  if (!force && cachedError && Date.now() - cachedError.cachedAt < ETF_HOLDINGS_ERROR_TTL_MS) {
+    throw cachedError.error;
+  }
+  if (pendingEtfHoldingsRequests.has(symbol)) return pendingEtfHoldingsRequests.get(symbol);
+
+  const pending = fetch(`/api/etf-holdings?symbol=${encodeURIComponent(symbol)}`)
+    .then(async (response) => {
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || payload.error || 'Unable to load ETF holdings.');
+      saveEtfHoldingsCache(symbol, payload);
+      etfHoldingsErrorCache.delete(symbol);
+      return { ...payload, clientCacheStatus: 'refreshed' };
+    })
+    .catch((error) => {
+      if (cached && age < ETF_HOLDINGS_CLIENT_STALE_TTL_MS) {
+        return { ...cached.payload, cacheStatus: 'stale', clientCacheStatus: 'stale' };
+      }
+      etfHoldingsErrorCache.set(symbol, { error, cachedAt: Date.now() });
+      throw error;
+    })
+    .finally(() => pendingEtfHoldingsRequests.delete(symbol));
+
+  pendingEtfHoldingsRequests.set(symbol, pending);
+  return pending;
 }
 
 function loadZacksReportHistory() {
@@ -452,10 +537,137 @@ function TradingViewChart({ stock }) {
   return <div ref={containerRef} className="tradingview-widget-container stock-chart-widget" />;
 }
 
+function formatHoldingPercent(value) {
+  if (!Number.isFinite(value)) return '—';
+  const maximumFractionDigits = Math.abs(value) < 0.1 ? 3 : 2;
+  return `${value.toLocaleString('en-US', { maximumFractionDigits })}%`;
+}
+
+function formatHoldingDate(value, locale) {
+  if (!value) return '';
+  const date = new Date(value.length === 10 ? `${value}T00:00:00Z` : value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: value.length === 10 ? 'UTC' : undefined,
+  }).format(date);
+}
+
+function EtfHoldingsPanel({ stock }) {
+  const { locale, t } = useI18n();
+  const [data, setData] = React.useState(null);
+  const [error, setError] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
+  const [refreshVersion, setRefreshVersion] = React.useState(0);
+
+  React.useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+    fetchEtfHoldings(stock.symbol, { force: refreshVersion > 0 })
+      .then((payload) => {
+        if (active) setData(payload);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [refreshVersion, stock.symbol]);
+
+  if (loading) {
+    return (
+      <div className="etf-holdings-state" role="status">
+        <span className="loading-orbit" />
+        <strong>{t('holdings.loading')}</strong>
+        <span>{t('holdings.loadingDetail')}</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    const configurationError = error.includes('ALPHA_VANTAGE_API_KEY');
+    return (
+      <div className="etf-holdings-state is-error" role="alert">
+        <strong>{t(configurationError ? 'holdings.configureTitle' : 'holdings.errorTitle')}</strong>
+        <span>{configurationError ? t('holdings.configureDetail') : error}</span>
+        <button type="button" onClick={() => setRefreshVersion((version) => version + 1)}>{t('error.retry')}</button>
+      </div>
+    );
+  }
+
+  const visibleHoldings = data.holdings.slice(0, 50);
+  const asOf = formatHoldingDate(data.asOf || data.retrievedAt, locale);
+  const isStale = data.cacheStatus === 'stale' || data.clientCacheStatus === 'stale';
+
+  return (
+    <div className="etf-holdings-panel">
+      <div className="etf-holdings-summary">
+        <article><span>{t('holdings.netAssets')}</span><strong>{formatCompactCurrency(data.netAssets)}</strong></article>
+        <article><span>{t('holdings.expenseRatio')}</span><strong>{formatHoldingPercent(data.expenseRatio)}</strong></article>
+        <article><span>{t('holdings.holdingsCount')}</span><strong>{data.count.toLocaleString(locale)}</strong></article>
+        <article><span>{t('holdings.dividendYield')}</span><strong>{formatHoldingPercent(data.dividendYield)}</strong></article>
+      </div>
+      <div className="etf-holdings-heading">
+        <div>
+          <span className="eyebrow">{t('holdings.eyebrow')}</span>
+          <h3>{t('holdings.title')}</h3>
+          <p>{t('holdings.showing', { visible: visibleHoldings.length, count: data.count.toLocaleString(locale) })}</p>
+        </div>
+        <div className="etf-holdings-meta">
+          {isStale && <span className="cache-badge">{t('panel.stale')}</span>}
+          {asOf && <span>{t('holdings.asOf', { date: asOf })}</span>}
+          <a href={`${stockDetailUrl(stock.symbol)}holdings/`} target="_blank" rel="noreferrer">{t('holdings.viewAll')}</a>
+        </div>
+      </div>
+      <div className="etf-holdings-table-wrap">
+        <table className="etf-holdings-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">{t('holdings.security')}</th>
+              <th scope="col">{t('holdings.typeSector')}</th>
+              <th scope="col">{t('holdings.weight')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleHoldings.map((holding, index) => (
+              <tr key={`${holding.symbol || holding.name}-${index}`}>
+                <td>{index + 1}</td>
+                <td>
+                  {holding.symbol ? (
+                    <a href={stockDetailUrl(holding.symbol)} target="_blank" rel="noreferrer">
+                      <strong>{holding.symbol}</strong><span>{holding.name}</span>
+                    </a>
+                  ) : <span><strong>{holding.name}</strong></span>}
+                </td>
+                <td>{holding.sector || holding.assetType || '—'}</td>
+                <td>
+                  <span className="holding-weight">
+                    <span aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(0, holding.weight))}%` }} /></span>
+                    <strong>{formatHoldingPercent(holding.weight)}</strong>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="etf-holdings-source">{t('holdings.source', { provider: data.provider })}</p>
+    </div>
+  );
+}
+
 function StockChartDialog({ stock, onClose }) {
   const { locale, t } = useI18n();
   const displayName = companyNameForLocale(stock, locale);
   const dialogRef = React.useRef(null);
+  const isEtf = stock.securityType === 'ETF';
+  const [activeTab, setActiveTab] = React.useState('chart');
 
   React.useEffect(() => {
     const dialog = dialogRef.current;
@@ -495,8 +707,8 @@ function StockChartDialog({ stock, onClose }) {
           <div className="stock-chart-company">
             <TickerAvatar symbol={stock.symbol} logoUrl={stock.logoUrl} />
             <div>
-              <span className="eyebrow">{t('chart.eyebrow')}</span>
-              <h2 id="stock-chart-title">{t('chart.title', { symbol: stock.symbol })}</h2>
+              <span className="eyebrow">{t(isEtf ? 'etf.eyebrow' : 'chart.eyebrow')}</span>
+              <h2 id="stock-chart-title">{t(isEtf ? 'etf.dialogTitle' : 'chart.title', { symbol: stock.symbol })}</h2>
               <p title={displayName !== stock.name ? stock.name : undefined}>{displayName}</p>
             </div>
           </div>
@@ -509,12 +721,41 @@ function StockChartDialog({ stock, onClose }) {
           </a>
           <button className="stock-chart-close" type="button" onClick={requestClose} aria-label={t('chart.close')}>×</button>
         </header>
+        {isEtf && (
+          <div className="stock-detail-tabs" role="tablist" aria-label={t('etf.tabsLabel')}>
+            {['chart', 'holdings'].map((tab) => (
+              <button
+                key={tab}
+                id={`stock-detail-tab-${tab}`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`stock-detail-panel-${tab}`}
+                tabIndex={activeTab === tab ? 0 : -1}
+                className={activeTab === tab ? 'is-active' : ''}
+                onClick={() => setActiveTab(tab)}
+              >
+                {t(`etf.tab.${tab}`)}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="stock-chart-body">
-          <TradingViewChart stock={stock} />
+          {activeTab === 'chart' ? (
+            <div id="stock-detail-panel-chart" className="stock-detail-panel" role={isEtf ? 'tabpanel' : undefined} aria-labelledby={isEtf ? 'stock-detail-tab-chart' : undefined}>
+              <TradingViewChart stock={stock} />
+            </div>
+          ) : (
+            <div id="stock-detail-panel-holdings" className="stock-detail-panel" role="tabpanel" aria-labelledby="stock-detail-tab-holdings">
+              <EtfHoldingsPanel stock={stock} />
+            </div>
+          )}
         </div>
-        <p className="stock-chart-attribution">
-          <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">{t('chart.attribution')}</a>
-        </p>
+        {activeTab === 'chart' && (
+          <p className="stock-chart-attribution">
+            <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">{t('chart.attribution')}</a>
+          </p>
+        )}
       </div>
     </dialog>
   );

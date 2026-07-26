@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import App from './App';
-import { createStockCsv, sortStocksForExport } from './StockList';
+import { createStockCsv, fetchEtfHoldings, sortStocksForExport, tradingViewSymbol } from './StockList';
 import { CHINESE_LOCALE, localeFromPathname, pathForLocale } from './i18n';
 import { companyNameForLocale, getChineseCompanyName } from './companyNamesZh';
 
@@ -33,9 +33,19 @@ const unratedStock = {
   changePercentage: -0.75,
 };
 
+const etfStock = {
+  ...stock,
+  symbol: 'SPY',
+  name: 'SPDR S&P 500 ETF Trust',
+  exchange: 'NYSE ARCA',
+  securityType: 'ETF',
+  sector: 'Broad market',
+};
+
 test('loads, filters, and switches stock universes', async () => {
   window.history.replaceState({}, '', '/');
   window.localStorage.removeItem('northstar:favorite-symbols:v1');
+  window.localStorage.removeItem('northstar:etf-holdings:v1:SPY');
   window.localStorage.setItem('northstar:zacks-best-history:v1', JSON.stringify([{
     reportDate: '2026-07-17',
     reportUrl: 'https://www.zacks.com/previous',
@@ -54,6 +64,25 @@ test('loads, filters, and switches stock universes', async () => {
     removeEventListener: vi.fn(),
   }));
   global.fetch = vi.fn(async (url) => {
+    if (url.includes('/api/etf-holdings')) {
+      return {
+        ok: true,
+        json: async () => ({
+          symbol: 'SPY',
+          provider: 'Alpha Vantage',
+          cacheStatus: 'refreshed',
+          asOf: '2026-07-25',
+          netAssets: 650000000000,
+          expenseRatio: 0.0945,
+          dividendYield: 1.2,
+          count: 2,
+          holdings: [
+            { symbol: 'NVDA', name: 'NVIDIA Corporation', weight: 7.82, assetType: 'Equity', sector: 'Technology' },
+            { symbol: 'AAPL', name: 'Apple Inc.', weight: 6.31, assetType: 'Equity', sector: 'Technology' },
+          ],
+        }),
+      };
+    }
     const isFavorites = url.includes('universe=favorites');
     const favoriteSymbols = new URL(url, 'https://example.test').searchParams.get('symbols')?.split(',') || [];
     return {
@@ -77,6 +106,8 @@ test('loads, filters, and switches stock universes', async () => {
         ? [stock, unratedStock].filter((item) => favoriteSymbols.includes(item.symbol))
         : url.includes('extendedMarket')
         ? [{ ...stock, marketRank: 42 }, { ...unratedStock, marketRank: 57 }]
+        : url.includes('popularEtfs')
+        ? [etfStock]
         : [stock, unratedStock],
       }),
     };
@@ -131,6 +162,19 @@ test('loads, filters, and switches stock universes', async () => {
   fireEvent.click(screen.getByRole('button', { name: /popular etfs/i }));
   expect(await screen.findByRole('heading', { name: 'Popular ETFs' })).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=popularEtfs');
+  fireEvent.click(screen.getByRole('button', { name: 'Open SPY chart from company name' }));
+  expect(screen.getByRole('dialog', { name: 'SPY details' })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Chart' })).toHaveAttribute('aria-selected', 'true');
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes('/api/etf-holdings'))).toHaveLength(0);
+  fireEvent.click(screen.getByRole('tab', { name: 'Holdings' }));
+  expect(await screen.findByText('NVIDIA Corporation')).toBeInTheDocument();
+  expect(screen.getByText('Showing the top 2 of 2 reported positions')).toBeInTheDocument();
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes('/api/etf-holdings'))).toHaveLength(1);
+  fireEvent.click(screen.getByRole('tab', { name: 'Chart' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Holdings' }));
+  expect(await screen.findByText('NVIDIA Corporation')).toBeInTheDocument();
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes('/api/etf-holdings'))).toHaveLength(1);
+  fireEvent.keyDown(screen.getByRole('dialog', { name: 'SPY details' }), { key: 'Escape' });
 
   fireEvent.click(screen.getByRole('button', { name: /extended market/i }));
   expect(await screen.findByRole('heading', { name: 'U.S. Extended Market' })).toBeInTheDocument();
@@ -152,6 +196,27 @@ test('loads, filters, and switches stock universes', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Remove AAPL from favorites' }));
   expect(await screen.findByText('No favorite stocks yet')).toBeInTheDocument();
   expect(JSON.parse(window.localStorage.getItem('northstar:favorite-symbols:v1'))).toEqual([]);
+});
+
+test('uses exact TradingView exchange prefixes for ETF charts', () => {
+  expect(tradingViewSymbol(etfStock)).toBe('AMEX:SPY');
+  expect(tradingViewSymbol({ ...etfStock, symbol: 'QQQ', exchange: '' })).toBe('NASDAQ:QQQ');
+  expect(tradingViewSymbol({ ...etfStock, symbol: 'FBTC', exchange: '' })).toBe('CBOE:FBTC');
+});
+
+test('briefly caches ETF provider errors unless the user explicitly retries', async () => {
+  window.localStorage.removeItem('northstar:etf-holdings:v1:VOO');
+  global.fetch = vi.fn(async () => ({
+    ok: false,
+    json: async () => ({ detail: 'Alpha Vantage is rate limiting ETF holdings requests.' }),
+  }));
+
+  await expect(fetchEtfHoldings('VOO')).rejects.toThrow('rate limiting');
+  await expect(fetchEtfHoldings('VOO')).rejects.toThrow('rate limiting');
+  expect(global.fetch).toHaveBeenCalledTimes(1);
+
+  await expect(fetchEtfHoldings('VOO', { force: true })).rejects.toThrow('rate limiting');
+  expect(global.fetch).toHaveBeenCalledTimes(2);
 });
 
 test('supports canonical Chinese URLs and switches language without reloading data', async () => {

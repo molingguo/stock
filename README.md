@@ -12,7 +12,7 @@ The U.S. Extended Market view ranks U.S. stocks by market cap, takes the top 1,0
 
 The 52-week range and company-logo URL use fields included in the existing batched Zacks quote response, so extracting them does not add provider API requests. Visible logos are lazy-loaded from Zacks' static image host and fall back to the ticker's first letter when unavailable.
 
-Selecting a desktop row, company name, or the body of a mobile stock card opens an on-demand TradingView daily chart. Yahoo Finance is linked from inside the chart dialog, while each Zacks-rank badge links directly to that ticker's Zacks quote page; the TradingView widget is not loaded until its dialog opens.
+Selecting a desktop row, company name, or the body of a mobile stock card opens an on-demand TradingView daily chart. ETF dialogs add a Holdings tab with portfolio metrics and the top 50 reported positions from Alpha Vantage. Holdings are fetched only when that tab is opened, deduplicated while in flight, cached in the browser and server for 24 hours, allowed to fall back to a seven-day stale copy, and served through Amplify's CDN cache. The free API is therefore used at most once per opened ETF per day per active cache layer. Yahoo Finance is linked from inside the dialog, while each Zacks-rank badge links directly to that ticker's Zacks quote page; the TradingView widget is not loaded until its tab opens.
 
 The current universe can be exported as CSV from the table header. Exports include only rows matching the active search, sector, and Zacks-rank filters and preserve the table's selected sort order.
 
@@ -36,6 +36,7 @@ The server is intentionally conservative with provider usage:
 - Concurrent requests share in-flight universe and source requests.
 - Cached data can be served for up to 24 hours if a source is unavailable or rate limiting.
 - The browser also keeps each universe response for 60 seconds.
+- ETF holdings are lazy-loaded per symbol and cached for 24 hours in both local storage and the server, with concurrent-request deduplication and a seven-day stale fallback.
 
 This is a good default for a single application instance. For a scaled deployment, replace the in-memory cache with Redis or another shared cache so all instances reuse the same provider response.
 
@@ -57,6 +58,9 @@ npm start
 | --- | ---: | --- |
 | `MARKET_DATA_PROVIDER` | `public` | Use `public`, or `fmp` for a compatible paid FMP plan |
 | `FMP_API_KEY` | unset | Server-only credential required when provider is `fmp` |
+| `ALPHA_VANTAGE_API_KEY` | unset | Optional server-only credential that enables ETF holdings |
+| `ETF_HOLDINGS_CACHE_MINUTES` | `1440` | Fresh ETF-profile lifetime (24 hours) |
+| `ETF_HOLDINGS_STALE_MINUTES` | `10080` | Maximum ETF-profile stale fallback (7 days) |
 | `MARKET_CACHE_MINUTES` | `15` | Fresh provider-response lifetime |
 | `MARKET_STALE_MINUTES` | `1440` | Maximum stale fallback lifetime |
 | `ZACKS_CACHE_MINUTES` | `720` | Fresh Zacks-rank lifetime |
@@ -67,7 +71,7 @@ npm start
 
 FMP's free plan currently returns HTTP 402 for the constituent and batch-quote endpoints this app needs. Keep the default public provider unless your FMP subscription includes those endpoints. If you use FMP, do not prefix its key with `REACT_APP_`; doing so would expose it in the browser bundle.
 
-Source references: [Nasdaq Stock Screener](https://www.nasdaq.com/market-activity/stocks/screener), [State Street SPY holdings](https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-500-etf-trust-spy), [Zacks Rank methodology](https://www.zacks.com/zrank/about-zacks-rank-in-industry.php), and [Zacks 7 Best Stocks report](https://www.zacks.com/pfp/report/FD764D21A742A0BDC23DAEC9ECCBD81A/?adid=ZCOM_IYFHOME_7BEST_CHERRY&alert=IYF_HOME_555_A382).
+Source references: [Nasdaq Stock Screener](https://www.nasdaq.com/market-activity/stocks/screener), [State Street SPY holdings](https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-500-etf-trust-spy), [Alpha Vantage ETF Profile](https://www.alphavantage.co/documentation/#etf-profile), [Zacks Rank methodology](https://www.zacks.com/zrank/about-zacks-rank-in-industry.php), and [Zacks 7 Best Stocks report](https://www.zacks.com/pfp/report/FD764D21A742A0BDC23DAEC9ECCBD81A/?adid=ZCOM_IYFHOME_7BEST_CHERRY&alert=IYF_HOME_555_A382).
 
 ## Commands
 
@@ -89,4 +93,6 @@ The repository includes an AWS Amplify Hosting Compute deployment for the Vite f
 
 `GET /api/stocks?universe=favorites&symbols=AAPL,MSFT`
 
-Responses include normalized stock rows with `zacksRank` and `zacksRankText`, plus `zacksCoverage`, `asOf`, `refreshAfter`, and cache-status metadata. The `zacksBest` response also includes `reportDate`, `reportUrl`, `resolvedReportUrl`, and `reportCacheStatus`. The favorites endpoint accepts at most 100 validated, comma-separated symbols and stores nothing on the server. Quotes and ratings may be delayed and are intended for research, not investment advice.
+`GET /api/etf-holdings?symbol=SPY`
+
+Stock responses include normalized rows with `zacksRank` and `zacksRankText`, plus `zacksCoverage`, `asOf`, `refreshAfter`, and cache-status metadata. The `zacksBest` response also includes `reportDate`, `reportUrl`, `resolvedReportUrl`, and `reportCacheStatus`. The favorites endpoint accepts at most 100 validated, comma-separated symbols and stores nothing on the server. The ETF endpoint accepts one symbol from the curated Popular ETFs universe and requires `ALPHA_VANTAGE_API_KEY`; its key never reaches the browser. Quotes, ratings, and holdings may be delayed and are intended for research, not investment advice.
