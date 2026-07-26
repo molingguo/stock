@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import App from './App';
+import { createStockCsv, sortStocksForExport } from './StockList';
 
 const stock = {
   symbol: 'AAPL',
@@ -83,9 +84,11 @@ test('loads, filters, and switches stock universes', async () => {
 
   fireEvent.change(screen.getByLabelText('Zacks rank'), { target: { value: 'buy-signals' } });
   expect(screen.getByText('1 results')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Export to CSV' })).toBeEnabled();
 
   fireEvent.change(screen.getByPlaceholderText(/search ticker/i), { target: { value: 'missing' } });
   expect(screen.getByText('0 results')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Export to CSV' })).toBeDisabled();
 
   fireEvent.click(screen.getByRole('button', { name: /popular etfs/i }));
   expect(await screen.findByRole('heading', { name: 'Popular ETFs' })).toBeInTheDocument();
@@ -103,4 +106,19 @@ test('loads, filters, and switches stock universes', async () => {
   expect(screen.getByRole('heading', { name: 'Jul 17, 2026' })).toBeInTheDocument();
   expect(screen.getByText('IBM')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=zacksBest');
+});
+
+test('builds CSV rows in the active table sort order', () => {
+  const rows = [
+    { ...stock, symbol: 'LOW', name: 'Lower Company', price: 10 },
+    { ...stock, symbol: 'HIGH', name: 'Higher, Company', price: 20 },
+  ];
+  const sorted = sortStocksForExport(rows, [{ field: 'price', sort: 'desc' }], rows);
+  const csv = createStockCsv(sorted, { allStocks: rows });
+  const lines = csv.trim().replace(/^\uFEFF/, '').split('\r\n');
+
+  expect(sorted.map((row) => row.symbol)).toEqual(['HIGH', 'LOW']);
+  expect(lines[0]).toContain('52-week position (%)');
+  expect(lines[1]).toContain('HIGH,"Higher, Company",20');
+  expect(lines[2]).toContain('LOW,Lower Company,10');
 });

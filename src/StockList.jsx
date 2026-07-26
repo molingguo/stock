@@ -44,6 +44,79 @@ function formatPercent(value) {
   return Number.isFinite(value) ? `${value >= 0 ? '+' : ''}${value.toFixed(2)}%` : '—';
 }
 
+function stockRank(stock, allStocks) {
+  return stock.marketRank ?? stock.listRank ?? allStocks.findIndex((item) => item.symbol === stock.symbol) + 1;
+}
+
+function yearRangePosition(stock) {
+  return Number.isFinite(stock.yearLow) && Number.isFinite(stock.yearHigh)
+    && stock.yearHigh > stock.yearLow && Number.isFinite(stock.price)
+    ? (stock.price - stock.yearLow) / (stock.yearHigh - stock.yearLow)
+    : null;
+}
+
+function stockSortValue(stock, field, allStocks) {
+  if (field === 'rank') return stockRank(stock, allStocks);
+  if (field === 'yearRangePosition') return yearRangePosition(stock);
+  return stock[field] ?? null;
+}
+
+export function sortStocksForExport(rows, sortModel, allStocks = rows) {
+  if (!sortModel?.length) return [...rows];
+  return rows.map((stock, index) => ({ stock, index })).sort((left, right) => {
+    for (const rule of sortModel) {
+      const leftValue = stockSortValue(left.stock, rule.field, allStocks);
+      const rightValue = stockSortValue(right.stock, rule.field, allStocks);
+      const leftMissing = leftValue === null || leftValue === '';
+      const rightMissing = rightValue === null || rightValue === '';
+      if (leftMissing || rightMissing) {
+        if (leftMissing && rightMissing) continue;
+        return leftMissing ? 1 : -1;
+      }
+      const comparison = typeof leftValue === 'number' && typeof rightValue === 'number'
+        ? leftValue - rightValue
+        : String(leftValue).localeCompare(String(rightValue), 'en-US', { numeric: true, sensitivity: 'base' });
+      if (comparison) return rule.sort === 'desc' ? -comparison : comparison;
+    }
+    return left.index - right.index;
+  }).map(({ stock }) => stock);
+}
+
+function escapeCsvCell(value) {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+export function createStockCsv(rows, { isEtf = false, allStocks = rows } = {}) {
+  const headers = [
+    'Rank', isEtf ? 'Fund' : 'Ticker', 'Name', 'Price', 'Day change (%)',
+    'Zacks rank', 'Zacks rating', isEtf ? 'Fund assets' : 'Market cap',
+    isEtf ? 'Category' : 'Sector',
+    ...(!isEtf ? ['P/E'] : []),
+    '52-week low', '52-week high', '52-week position (%)',
+  ];
+  const values = rows.map((stock) => [
+    stockRank(stock, allStocks), stock.symbol, stock.name, stock.price, stock.changePercentage,
+    stock.zacksRank, stock.zacksRankText, stock.marketCap, stock.sector,
+    ...(!isEtf ? [stock.pe] : []),
+    stock.yearLow, stock.yearHigh,
+    Number.isFinite(yearRangePosition(stock)) ? (yearRangePosition(stock) * 100).toFixed(2) : null,
+  ]);
+  return `\uFEFF${[headers, ...values].map((row) => row.map(escapeCsvCell).join(',')).join('\r\n')}\r\n`;
+}
+
+function downloadCsv(contents, filename) {
+  const url = URL.createObjectURL(new Blob([contents], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function formatUpdatedAt(value) {
   if (!value) return 'Waiting for market data';
   return `Updated ${new Intl.DateTimeFormat('en-US', {
@@ -171,6 +244,16 @@ function RefreshIcon({ spinning }) {
     <svg className={spinning ? 'refresh-icon is-spinning' : 'refresh-icon'} viewBox="0 0 24 24" aria-hidden="true">
       <path d="M20 7v5h-5" />
       <path d="M19 12a7 7 0 1 0-2 5" />
+    </svg>
+  );
+}
+
+function ExportIcon() {
+  return (
+    <svg className="export-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v12" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+      <path d="M5 19h14" />
     </svg>
   );
 }
@@ -439,6 +522,7 @@ function StockList() {
   const [refreshVersion, setRefreshVersion] = React.useState(0);
   const [zacksReportHistory, setZacksReportHistory] = React.useState(loadZacksReportHistory);
   const [selectedStock, setSelectedStock] = React.useState(null);
+  const [sortModel, setSortModel] = React.useState([]);
   const isMobile = useMediaLayout('(max-width: 700px)');
   const isCompactTable = useMediaLayout('(max-width: 1300px)');
   const isNarrowTable = useMediaLayout('(max-width: 1000px)');
@@ -517,8 +601,9 @@ function StockList() {
       field: 'rank',
       headerName: '#',
       width: 64,
+      type: 'number',
       sortable: false,
-      valueGetter: (_value, row) => row.marketRank ?? row.listRank ?? stocks.findIndex((stock) => stock.symbol === row.symbol) + 1,
+      valueGetter: (_value, row) => stockRank(row, stocks),
     },
     {
       field: 'symbol',
@@ -564,11 +649,7 @@ function StockList() {
       headerName: '52-week range',
       width: 178,
       type: 'number',
-      valueGetter: (_value, row) => (
-        Number.isFinite(row.yearLow) && Number.isFinite(row.yearHigh) && row.yearHigh > row.yearLow && Number.isFinite(row.price)
-          ? (row.price - row.yearLow) / (row.yearHigh - row.yearLow)
-          : null
-      ),
+      valueGetter: (_value, row) => yearRangePosition(row),
       renderCell: ({ row }) => <YearRange low={row.yearLow} high={row.yearHigh} price={row.price} />,
     },
   ], [isEtfUniverse, stocks]);
@@ -579,7 +660,16 @@ function StockList() {
     setSearch('');
     setSector('all');
     setZacksFilter('all');
+    setSortModel([]);
     setRefreshVersion(0);
+  };
+
+  const exportCurrentTable = () => {
+    const orderedStocks = sortStocksForExport(filteredStocks, sortModel, stocks);
+    const csv = createStockCsv(orderedStocks, { isEtf: isEtfUniverse, allStocks: stocks });
+    const universeName = universe.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+    const date = String(data?.asOf || new Date().toISOString()).slice(0, 10);
+    downloadCsv(csv, `northstar-${universeName}-${date}.csv`);
   };
 
   return (
@@ -635,10 +725,22 @@ function StockList() {
               )}
             </p>
           </div>
-          <button className="refresh-button" type="button" onClick={() => setRefreshVersion((version) => version + 1)} disabled={loading}>
-            <RefreshIcon spinning={loading} />
-            <span>{loading ? 'Syncing' : 'Refresh'}</span>
-          </button>
+          <div className="panel-actions">
+            <button
+              className="export-button"
+              type="button"
+              onClick={exportCurrentTable}
+              disabled={loading || !filteredStocks.length}
+              aria-label="Export to CSV"
+            >
+              <ExportIcon />
+              <span>Export CSV</span>
+            </button>
+            <button className="refresh-button" type="button" onClick={() => setRefreshVersion((version) => version + 1)} disabled={loading}>
+              <RefreshIcon spinning={loading} />
+              <span>{loading ? 'Syncing' : 'Refresh'}</span>
+            </button>
+          </div>
         </div>
 
         <div className="toolbar">
@@ -700,6 +802,8 @@ function StockList() {
                     rows={filteredStocks}
                     columns={columns}
                     getRowId={(row) => row.symbol}
+                    sortModel={sortModel}
+                    onSortModelChange={setSortModel}
                     columnVisibilityModel={{
                       marketCap: !isNarrowTable,
                       sector: !isNarrowTable,

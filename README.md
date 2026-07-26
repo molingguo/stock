@@ -14,6 +14,8 @@ The 52-week range and company-logo URL use fields included in the existing batch
 
 Selecting a desktop row or the body of a mobile stock card opens an on-demand TradingView daily chart. The company name remains a direct Yahoo Finance link, and the TradingView widget is not loaded until its dialog opens.
 
+The current universe can be exported as CSV from the table header. Exports include only rows matching the active search, sector, and Zacks-rank filters and preserve the table's selected sort order.
+
 The Zacks 7 Best Stocks view resolves the report's dated edition, reads the seven symbols from its public edition script, and displays the edition date from the resolved URL. Zacks may challenge automated server requests, so the app falls back to its last verified edition instead of showing an empty view; set `ZACKS_7_BEST_EDITION_URL` to a newly resolved report URL whenever an automated refresh cannot get through. Each browser retains up to eight successfully viewed editions and displays earlier weeks as separate seven-stock tables without making extra Zacks requests.
 
 The server is intentionally conservative with provider usage:

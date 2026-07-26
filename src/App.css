@@ -131,10 +131,14 @@
 .panel-metadata a { color: var(--forest); font-weight: 800; text-underline-offset: 2px; }
 .panel-metadata a:hover { color: var(--forest-dark); }
 
-.refresh-button { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 11px; height: 42px; padding: 0 15px; display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
-.refresh-button:hover:not(:disabled) { border-color: #a9b9b2; background: #f8faf8; }
-.refresh-button:disabled { cursor: wait; opacity: 0.65; }
+.panel-actions { display: flex; align-items: center; gap: 8px; }
+.refresh-button, .export-button { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 11px; height: 42px; padding: 0 15px; display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; white-space: nowrap; }
+.export-button { color: var(--forest); background: #f7faf8; }
+.refresh-button:hover:not(:disabled), .export-button:hover:not(:disabled) { border-color: #a9b9b2; background: #f2f7f3; }
+.refresh-button:focus-visible, .export-button:focus-visible { outline: 3px solid rgba(184, 227, 111, 0.8); outline-offset: 2px; }
+.refresh-button:disabled, .export-button:disabled { cursor: wait; opacity: 0.55; }
 .refresh-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.export-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .refresh-icon.is-spinning { animation: spin 900ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -291,8 +295,9 @@ footer p { margin: 0; }
   .panel-heading p { font-size: 10px; }
   .panel-metadata { gap: 4px 10px; }
   .panel-metadata > * + *::before { display: none; }
-  .refresh-button { width: 40px; padding: 0; justify-content: center; }
-  .refresh-button span { display: none; }
+  .panel-actions { gap: 6px; }
+  .refresh-button, .export-button { width: 40px; padding: 0; justify-content: center; }
+  .refresh-button span, .export-button span { display: none; }
   .toolbar { min-height: auto; padding: 12px; display: grid; grid-template-columns: 1fr 120px; }
   .search-field { grid-column: 1 / -1; width: 100%; }
   .sector-field { min-width: 0; }
