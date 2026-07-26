@@ -3,6 +3,7 @@ const { createZacksRatingsService } = require('./zacksRatings');
 const { createZacksBestStocksService } = require('./zacksBestStocks');
 const { POPULAR_ETFS } = require('./popularEtfs');
 const { createPiotroskiScoresService } = require('./piotroskiScores');
+const { createMarketIndexesService, emptyIndexes } = require('./marketIndexes');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 const NASDAQ_SCREENER_URL = 'https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10000&download=true';
@@ -129,6 +130,7 @@ function createMarketDataService({
   ratingsService,
   bestStocksService,
   piotroskiScoresService,
+  marketIndexesService,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
   if (!['public', 'fmp'].includes(provider)) {
@@ -142,6 +144,7 @@ function createMarketDataService({
   const zacksRatings = ratingsService || createZacksRatingsService({ fetchImpl, now });
   const zacksBestStocks = bestStocksService || createZacksBestStocksService({ fetchImpl, now });
   const piotroskiScores = piotroskiScoresService || createPiotroskiScoresService();
+  const marketIndexes = marketIndexesService || createMarketIndexesService({ fetchImpl, now });
 
   async function fetchWithTimeout(url, options = {}) {
     return fetchImpl(url, { ...options, signal: AbortSignal.timeout(12_000) });
@@ -334,6 +337,8 @@ function createMarketDataService({
       refreshAfter: new Date(entry.fetchedAt + cacheTtlMs).toISOString(),
       cacheStatus,
       ratingsCacheStatus: entry.ratingsCacheStatus,
+      indexesCacheStatus: entry.indexesCacheStatus,
+      marketIndexes: entry.marketIndexes,
       ...(entry.reportDate ? {
         reportDate: entry.reportDate,
         reportUrl: entry.reportUrl,
@@ -390,7 +395,18 @@ function createMarketDataService({
       ? loadZacksBestUniverse()
       : loader(sourceKey).then((stocks) => ({ stocks }));
     const pending = load
-      .then(async ({ stocks, ...metadata }) => ({ ...await enrichWithZacks(stocks), ...metadata }))
+      .then(async ({ stocks, ...metadata }) => {
+        const [enriched, indexesResult] = await Promise.all([
+          enrichWithZacks(stocks),
+          marketIndexes.getIndexes().catch(() => ({ indexes: emptyIndexes(), cacheStatus: 'unavailable' })),
+        ]);
+        return {
+          ...enriched,
+          ...metadata,
+          marketIndexes: indexesResult.indexes,
+          indexesCacheStatus: indexesResult.cacheStatus,
+        };
+      })
       .then(({ stocks, ratingsCacheStatus, ...metadata }) => {
         const normalizedStocks = sourceKey === 'popularEtfs'
           ? stocks.filter((stock) => stock.price !== null)

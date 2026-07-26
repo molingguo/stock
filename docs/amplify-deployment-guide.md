@@ -56,6 +56,8 @@ Configure these variables before pushing the deployment commit so the first auto
 | `ZACKS_CACHE_MINUTES` | `720` |
 | `ZACKS_STALE_MINUTES` | `1440` |
 | `ZACKS_7_BEST_CACHE_MINUTES` | `1440` |
+| `INDEX_CACHE_MINUTES` | `15` |
+| `INDEX_STALE_MINUTES` | `1440` |
 
 7. Apply the values to all branches, or add a `main` branch override if other branches need different settings.
 8. Select **Save**.
@@ -213,6 +215,8 @@ Inspect the Hosting Compute logs for the request. Confirm the runtime can make o
 
 The Zacks report may show `Verified report snapshot`. This is expected when Zacks blocks automated report resolution; quotes and ranks are still refreshed separately.
 
+The S&P 500 and Nasdaq Composite summary cards use one combined index request cached for 15 minutes. If that request fails, the stock table continues loading and a cached index value is used for up to 24 hours; without a cached value, only the two index cards show unavailable data.
+
 ### The compute artifact exceeds 220 MB
 
 The build script stops before deployment when this happens. Review newly added production dependencies and ensure frontend-only libraries have not unnecessarily expanded the server artifact.
@@ -229,6 +233,8 @@ ZACKS_CACHE_MINUTES
 ZACKS_STALE_MINUTES
 ZACKS_7_BEST_CACHE_MINUTES
 ZACKS_7_BEST_EDITION_URL
+INDEX_CACHE_MINUTES
+INDEX_STALE_MINUTES
 ```
 
 It deliberately excludes `FMP_API_KEY` and every unrecognized environment variable. Do not modify that allowlist to include credentials because Amplify build values can appear in deployment artifacts.

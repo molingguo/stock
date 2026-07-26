@@ -96,6 +96,8 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
           source: { sungard: { exchange: 'NASDAQ', yrlow: '8.25', yrhigh: '14.75' } },
         },
         BBB: { ticker: 'BBB', zacks_rank: '3', zacks_rank_text: 'Hold', pe_f1: '18.2' },
+        SPX: { name: 'S&P 500', last: '7411.98', net_change: '3.68', percent_net_change: '.05' },
+        COMPX: { name: 'Nasdaq Composite', last: '24975.824', net_change: '-161.868', percent_net_change: '-.644' },
       });
     }
 
@@ -131,12 +133,14 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.stocks[0].piotroskiScore, 8);
   assert.equal(result.piotroskiCoverage, 1);
   assert.equal(result.piotroskiScoreYear, 2025);
+  assert.equal(result.marketIndexes.sp500.changePercentage, 0.05);
+  assert.equal(result.marketIndexes.nasdaq.changePercentage, -0.644);
   assert.equal(result.zacksCoverage, 1);
   assert.equal(extendedResult.label, 'U.S. Extended Market');
   assert.deepEqual(extendedResult.stocks.map((stock) => stock.symbol), ['BBB']);
   assert.equal(extendedResult.stocks[0].marketRank, 2);
   assert.equal(extendedResult.stocks[0].zacksRank, 3);
-  assert.equal(requests.length, 4);
+  assert.equal(requests.length, 5);
   assert.equal(requests.filter((request) => request.includes('api.nasdaq.com')).length, 1);
   assert.equal(requests.filter((request) => request.includes('ssga.com')).length, 1);
   assert.equal(requests.some((request) => request.includes('financialmodelingprep.com')), false);
@@ -168,7 +172,7 @@ test('loads live S&P constituents, batches quotes, and caches the result', async
   const first = await service.getStocks('sp500');
   const second = await service.getStocks('sp500');
 
-  assert.equal(requests.length, 3);
+  assert.equal(requests.length, 4);
   assert.equal(requests[0].options.headers.apikey, 'secret');
   assert.equal(requests[0].url.toString().includes('secret'), false);
   assert.deepEqual(first.stocks.map((stock) => stock.symbol), ['BBB', 'AAA']);
@@ -213,8 +217,8 @@ test('excludes S&P constituents from the cached top-1000 extended-market view', 
   assert.equal(extended.stocks[0].marketRank, 3);
   assert.equal(extended.stocks.at(-1).marketRank, 600);
   assert.equal(cached.cacheStatus, 'fresh');
-  assert.equal(requestCount, 8);
-  assert.equal(zacksRequestCount, 3);
+  assert.equal(requestCount, 9);
+  assert.equal(zacksRequestCount, 4);
 });
 
 test('loads popular ETFs from one quote batch and orders them by live fund assets', async () => {
@@ -257,7 +261,7 @@ test('loads popular ETFs from one quote batch and orders them by live fund asset
   assert.equal(result.stocks[0].zacksRank, 2);
   assert.equal(result.sources.includes('Nasdaq'), false);
   assert.equal(cached.cacheStatus, 'fresh');
-  assert.equal(requests.length, 1);
+  assert.equal(requests.length, 2);
 });
 
 test('loads the weekly Zacks report picks with report-date metadata', async () => {

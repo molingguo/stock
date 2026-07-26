@@ -11,6 +11,8 @@ const RUNTIME_ENV_KEYS = [
   'ZACKS_STALE_MINUTES',
   'ZACKS_7_BEST_CACHE_MINUTES',
   'ZACKS_7_BEST_EDITION_URL',
+  'INDEX_CACHE_MINUTES',
+  'INDEX_STALE_MINUTES',
 ];
 
 const root = path.resolve(__dirname, '..');
