@@ -619,13 +619,11 @@ function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavori
             <strong>{stock.symbol}</strong>
             <span title={displayName !== stock.name ? stock.name : undefined}>{displayName}</span>
           </button>
+          <strong className="stock-card__price">{formatCurrency(stock.price)}</strong>
         </div>
-        <div className="stock-card__quote">
-          <strong>{formatCurrency(stock.price)}</strong>
-          <div>
-            <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} symbol={stock.symbol} />
-            <ChangeValue value={stock.changePercentage} />
-          </div>
+        <div className="stock-card__signals">
+          <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} symbol={stock.symbol} />
+          <ChangeValue value={stock.changePercentage} />
         </div>
         <dl>
           <div><dt>{t(isEtf ? 'column.fundAssets' : 'column.marketCap')}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>

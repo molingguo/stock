@@ -91,6 +91,10 @@ test('loads, filters, and switches stock universes', async () => {
   expect(document.querySelector('img[src="https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png"]')).toBeInTheDocument();
   expect(screen.getAllByRole('img', { name: '52-week range from $120.00 to $220.00; current price $200.00' }).length).toBeGreaterThan(0);
   expect(document.querySelector('script[src*="embed-widget-advanced-chart.js"]')).not.toBeInTheDocument();
+  const mobileAaplCard = screen.getAllByText('AAPL').map((element) => element.closest('article')).find(Boolean);
+  expect(mobileAaplCard.querySelector('.stock-card__lead > .stock-card__price')).toHaveTextContent('$200.00');
+  expect(mobileAaplCard.querySelector('.stock-card__signals').firstElementChild).toHaveClass('zacks-rank-link');
+  expect(mobileAaplCard.querySelector('.stock-card__signals').lastElementChild).toHaveClass('change-pill');
 
   fireEvent.click(screen.getByRole('button', { name: 'Open AAPL chart from company name' }));
   expect(screen.getByRole('dialog', { name: 'AAPL chart' })).toBeInTheDocument();

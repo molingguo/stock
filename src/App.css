@@ -258,11 +258,10 @@ html[lang='zh-CN'] .eyebrow { letter-spacing: 0.18em; }
 .stock-card__lead .rank { width: 22px; color: #98a39e; font-size: 11px; text-align: center; }
 .stock-card__lead .favorite-button { margin-left: -5px; }
 .stock-card__company-link { position: relative; z-index: 2; min-width: 0; flex: 1; padding: 0; display: flex; flex-direction: column; }
+.stock-card__price { position: relative; z-index: 2; flex: 0 0 auto; align-self: flex-start; margin-left: auto; padding: 1px 0 0 8px; font-family: Georgia, 'Times New Roman', serif; font-size: 19px; font-weight: 500; line-height: 1.1; white-space: nowrap; }
 .stock-card__company-link span { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.stock-card__quote { margin: 15px 0 13px 32px; display: flex; align-items: center; justify-content: space-between; }
-.stock-card__quote > strong { font-family: Georgia, 'Times New Roman', serif; font-size: 21px; }
-.stock-card__quote > div { display: flex; align-items: center; gap: 7px; }
-.stock-card__quote .zacks-rank { min-width: 0; }
+.stock-card__signals { margin: 16px 0 13px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.stock-card__signals .zacks-rank { min-width: 0; }
 .stock-card dl { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 0 32px; padding-top: 12px; border-top: 1px dashed #e1e7e3; }
 .stock-card dl div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .stock-card dl .stock-card__range { grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e1e7e3; }
@@ -389,8 +388,6 @@ footer p { margin: 0; }
   .stock-chart-body { min-height: 0; padding: 8px 8px 0; }
   .stock-chart-attribution { padding: 6px 12px 9px; }
   footer { flex-direction: column; gap: 6px; padding-inline: 3px; }
-  .stock-card__quote { align-items: flex-start; }
-  .stock-card__quote > div { align-items: flex-end; flex-direction: column; }
 }
 
 @media (max-width: 430px) {
