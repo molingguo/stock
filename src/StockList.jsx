@@ -571,7 +571,6 @@ function StockList() {
       ),
       renderCell: ({ row }) => <YearRange low={row.yearLow} high={row.yearHigh} price={row.price} />,
     },
-    { field: 'volume', headerName: 'Volume', width: 110, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? numberFormatter.format(value) : '—' },
   ], [isEtfUniverse, stocks]);
 
   const selectUniverse = (nextUniverse) => {
@@ -705,7 +704,6 @@ function StockList() {
                       marketCap: !isNarrowTable,
                       sector: !isNarrowTable,
                       pe: !isCompactTable,
-                      volume: !isCompactTable,
                     }}
                     onRowClick={openRowChart}
                     autoHeight
@@ -770,7 +768,6 @@ function StockList() {
                         marketCap: !isNarrowTable,
                         sector: !isNarrowTable,
                         pe: !isCompactTable,
-                        volume: !isCompactTable,
                       }}
                       onRowClick={openRowChart}
                       autoHeight
