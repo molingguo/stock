@@ -72,6 +72,19 @@ function stockDetailUrl(symbol) {
   return `https://finance.yahoo.com/quote/${encodeURIComponent(yahooSymbol)}/`;
 }
 
+function tradingViewSymbol(stock) {
+  const exchange = String(stock?.exchange || '').trim().toUpperCase();
+  const exchangePrefix = exchange.includes('NASDAQ') || exchange === 'NSDQ'
+    ? 'NASDAQ'
+    : exchange.includes('NYSE')
+      ? 'NYSE'
+      : exchange.includes('AMEX') || exchange.includes('ARCA')
+        ? 'AMEX'
+        : '';
+  const symbol = String(stock?.symbol || '').trim().toUpperCase();
+  return exchangePrefix ? `${exchangePrefix}:${symbol}` : symbol;
+}
+
 function loadZacksReportHistory() {
   if (typeof window === 'undefined' || !window.localStorage) return [];
   try {
@@ -111,11 +124,6 @@ function archiveZacksReport(payload, existingReports) {
     return next;
   }
   return next;
-}
-
-function openStockDetail({ row }, event) {
-  if (event.target.closest('a')) return;
-  window.open(stockDetailUrl(row.symbol), '_blank', 'noopener,noreferrer');
 }
 
 async function fetchUniverse(universe, force = false) {
@@ -219,6 +227,114 @@ function YearRange({ low, high, price }) {
   );
 }
 
+function TradingViewChart({ stock }) {
+  const containerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !stock?.symbol) return undefined;
+
+    container.replaceChildren();
+    const widget = document.createElement('div');
+    widget.className = 'tradingview-widget-container__widget';
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.type = 'text/javascript';
+    script.async = true;
+    script.textContent = JSON.stringify({
+      autosize: true,
+      symbol: tradingViewSymbol(stock),
+      interval: 'D',
+      timezone: 'America/New_York',
+      theme: 'light',
+      backgroundColor: '#ffffff',
+      gridColor: 'rgba(19, 32, 29, 0.06)',
+      style: '1',
+      locale: 'en',
+      allow_symbol_change: false,
+      calendar: false,
+      details: false,
+      hide_side_toolbar: true,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      withdateranges: true,
+      support_host: 'https://www.tradingview.com',
+    });
+    container.append(widget, script);
+
+    return () => container.replaceChildren();
+  }, [stock]);
+
+  return <div ref={containerRef} className="tradingview-widget-container stock-chart-widget" />;
+}
+
+function StockChartDialog({ stock, onClose }) {
+  const dialogRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+  }, []);
+
+  const requestClose = () => {
+    const dialog = dialogRef.current;
+    if (dialog?.open && typeof dialog.close === 'function') dialog.close();
+    else onClose();
+  };
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="stock-chart-dialog"
+      aria-labelledby="stock-chart-title"
+      onClose={onClose}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          onClose();
+        }
+      }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) requestClose();
+      }}
+    >
+      <div className="stock-chart-modal">
+        <header className="stock-chart-header">
+          <div className="stock-chart-company">
+            <TickerAvatar symbol={stock.symbol} logoUrl={stock.logoUrl} />
+            <div>
+              <span className="eyebrow">INTERACTIVE DAILY CHART</span>
+              <h2 id="stock-chart-title">{stock.symbol} chart</h2>
+              <p>{stock.name}</p>
+            </div>
+          </div>
+          <div className="stock-chart-quote">
+            <strong>{formatCurrency(stock.price)}</strong>
+            <ChangeValue value={stock.changePercentage} />
+          </div>
+          <a className="stock-chart-yahoo" href={stockDetailUrl(stock.symbol)} target="_blank" rel="noreferrer">
+            View on Yahoo Finance
+          </a>
+          <button className="stock-chart-close" type="button" onClick={requestClose} aria-label="Close chart">×</button>
+        </header>
+        <div className="stock-chart-body">
+          <TradingViewChart stock={stock} />
+        </div>
+        <p className="stock-chart-attribution">
+          <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Interactive chart by TradingView</a>
+        </p>
+      </div>
+    </dialog>
+  );
+}
+
 function ZacksRank({ rank, text }) {
   if (!Number.isInteger(rank)) return <span className="zacks-rank unavailable">Not rated</span>;
   const tone = ['strong-buy', 'buy', 'hold', 'sell', 'strong-sell'][rank - 1];
@@ -239,23 +355,28 @@ function StatCard({ eyebrow, value, detail, tone = 'default' }) {
   );
 }
 
-function StockCard({ stock, rank, isEtf }) {
+function StockCard({ stock, rank, isEtf, onOpenChart }) {
   return (
-    <a
-      className="stock-card-link"
-      href={stockDetailUrl(stock.symbol)}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={`View ${stock.symbol} on Yahoo Finance`}
-    >
-      <article className="stock-card">
+    <article className="stock-card">
+      <button
+        className="stock-card__chart-trigger"
+        type="button"
+        onClick={() => onOpenChart(stock)}
+        aria-label={`Open ${stock.symbol} chart`}
+      />
         <div className="stock-card__lead">
           <span className="rank">{rank}</span>
           <TickerAvatar symbol={stock.symbol} logoUrl={stock.logoUrl} />
-          <div>
+          <a
+            className="stock-card__company-link"
+            href={stockDetailUrl(stock.symbol)}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`View ${stock.symbol} on Yahoo Finance`}
+          >
             <strong>{stock.symbol}</strong>
             <span>{stock.name}</span>
-          </div>
+          </a>
         </div>
         <div className="stock-card__quote">
           <strong>{formatCurrency(stock.price)}</strong>
@@ -273,8 +394,7 @@ function StockCard({ stock, rank, isEtf }) {
             <dd><YearRange low={stock.yearLow} high={stock.yearHigh} price={stock.price} /></dd>
           </div>
         </dl>
-      </article>
-    </a>
+    </article>
   );
 }
 
@@ -318,11 +438,18 @@ function StockList() {
   const [zacksFilter, setZacksFilter] = React.useState('all');
   const [refreshVersion, setRefreshVersion] = React.useState(0);
   const [zacksReportHistory, setZacksReportHistory] = React.useState(loadZacksReportHistory);
+  const [selectedStock, setSelectedStock] = React.useState(null);
   const isMobile = useMediaLayout('(max-width: 700px)');
   const isCompactTable = useMediaLayout('(max-width: 1300px)');
   const isNarrowTable = useMediaLayout('(max-width: 1000px)');
   const isEtfUniverse = universe === 'popularEtfs';
   const isBestStocksUniverse = universe === 'zacksBest';
+
+  const openStockChart = React.useCallback((stock) => setSelectedStock(stock), []);
+  const openRowChart = React.useCallback(({ row }, event) => {
+    if (event.target?.closest?.('a, button')) return;
+    setSelectedStock(row);
+  }, []);
 
   React.useEffect(() => {
     let active = true;
@@ -557,7 +684,13 @@ function StockList() {
             {isMobile ? (
               <div className="mobile-list" data-testid="mobile-stock-list">
                 {filteredStocks.slice(0, 50).map((stock) => (
-                  <StockCard key={stock.symbol} stock={stock} rank={stock.marketRank ?? stocks.findIndex((item) => item.symbol === stock.symbol) + 1} isEtf={isEtfUniverse} />
+                  <StockCard
+                    key={stock.symbol}
+                    stock={stock}
+                    rank={stock.marketRank ?? stocks.findIndex((item) => item.symbol === stock.symbol) + 1}
+                    isEtf={isEtfUniverse}
+                    onOpenChart={openStockChart}
+                  />
                 ))}
                 {filteredStocks.length > 50 && <p className="mobile-limit">Showing the first 50 results. Use search or sector filters to narrow the list.</p>}
               </div>
@@ -574,7 +707,7 @@ function StockList() {
                       pe: !isCompactTable,
                       volume: !isCompactTable,
                     }}
-                    onRowClick={openStockDetail}
+                    onRowClick={openRowChart}
                     autoHeight
                     disableRowSelectionOnClick
                     rowHeight={68}
@@ -617,7 +750,13 @@ function StockList() {
               {isMobile ? (
                 <div className="mobile-list archived-mobile-list">
                   {report.stocks.map((stock, index) => (
-                    <StockCard key={stock.symbol} stock={stock} rank={stock.listRank ?? index + 1} isEtf={false} />
+                    <StockCard
+                      key={stock.symbol}
+                      stock={stock}
+                      rank={stock.listRank ?? index + 1}
+                      isEtf={false}
+                      onOpenChart={openStockChart}
+                    />
                   ))}
                 </div>
               ) : (
@@ -633,7 +772,7 @@ function StockList() {
                         pe: !isCompactTable,
                         volume: !isCompactTable,
                       }}
-                      onRowClick={openStockDetail}
+                      onRowClick={openRowChart}
                       autoHeight
                       disableRowSelectionOnClick
                       rowHeight={68}
@@ -658,6 +797,8 @@ function StockList() {
         <p>Data supplied by {data?.sources?.join(' and ') || 'public market sources'} and cached to protect provider limits.</p>
         <p>Quotes may be delayed. For research only, not investment advice.</p>
       </footer>
+
+      {selectedStock && <StockChartDialog stock={selectedStock} onClose={() => setSelectedStock(null)} />}
     </main>
   );
 }

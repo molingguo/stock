@@ -6,6 +6,7 @@ const stock = {
   symbol: 'AAPL',
   name: 'Apple Inc.',
   logoUrl: 'https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png',
+  exchange: 'NASDAQ',
   price: 200,
   changePercentage: 1.25,
   marketCap: 3000000000000,
@@ -69,6 +70,14 @@ test('loads, filters, and switches stock universes', async () => {
   );
   expect(document.querySelector('img[src="https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png"]')).toBeInTheDocument();
   expect(screen.getAllByRole('img', { name: '52-week range from $120.00 to $220.00; current price $200.00' }).length).toBeGreaterThan(0);
+  expect(document.querySelector('script[src*="embed-widget-advanced-chart.js"]')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getAllByRole('button', { name: 'Open AAPL chart' })[0]);
+  expect(screen.getByRole('dialog', { name: 'AAPL chart' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'View on Yahoo Finance' })).toHaveAttribute('href', 'https://finance.yahoo.com/quote/AAPL/');
+  expect(document.querySelector('script[src*="embed-widget-advanced-chart.js"]')).toBeInTheDocument();
+  fireEvent.keyDown(screen.getByRole('dialog', { name: 'AAPL chart' }), { key: 'Escape' });
+  expect(screen.queryByRole('dialog', { name: 'AAPL chart' })).not.toBeInTheDocument();
   expect(screen.getByText('Strong Buy')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
 

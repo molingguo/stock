@@ -108,6 +108,7 @@ function createZacksRatingsService({
       const quote = item ? {
         name: item.name || item.company_short_name || item.ap_short_name || '',
         logoUrl: normalizeLogoUrl(item.company_logo_url),
+        exchange: String(item.source?.sungard?.exchange || '').trim(),
         price: asNumber(item.last),
         change: asNumber(item.net_change),
         changePercentage: asNumber(item.percent_net_change),

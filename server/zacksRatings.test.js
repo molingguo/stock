@@ -29,7 +29,11 @@ test('serves stale Zacks ranks when a refresh is rate limited', async () => {
           zacks_rank: '1',
           zacks_rank_text: 'Strong Buy',
           pe_f1: '31.2',
-          source: { sungard: { market_cap: '3000000000000', yrlow: '164.08', yrhigh: '237.49' } },
+          source: {
+            sungard: {
+              exchange: 'NASDAQ', market_cap: '3000000000000', yrlow: '164.08', yrhigh: '237.49',
+            },
+          },
         },
       }),
   });
@@ -43,6 +47,7 @@ test('serves stale Zacks ranks when a refresh is rate limited', async () => {
   assert.deepEqual(initial.quotes.get('AAPL'), {
     name: 'Apple Inc.',
     logoUrl: 'https://staticx-tuner.zacks.com/images/stocks-thumb/AAPL.png',
+    exchange: 'NASDAQ',
     price: 200.5,
     change: null,
     changePercentage: 1.25,

@@ -360,6 +360,7 @@ function createMarketDataService({
           ...stock,
           name: quote?.name || stock.name,
           logoUrl: stock.logoUrl || quote?.logoUrl || '',
+          exchange: stock.exchange || quote?.exchange || '',
           price: stock.price ?? quote?.price ?? null,
           change: stock.change ?? quote?.change ?? null,
           changePercentage: stock.changePercentage ?? quote?.changePercentage ?? null,
