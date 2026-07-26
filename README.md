@@ -4,27 +4,26 @@ A responsive U.S. stock explorer with live S&P 500 constituents and market-cap-r
 
 ## Data architecture
 
-The React app calls only the local `/api/stocks` endpoint. The Node/Express server keeps the Financial Modeling Prep (FMP) key private and uses FMP's live constituent, company screener, and batch quote endpoints.
+The React app calls only the local `/api/stocks` endpoint. By default, the Node/Express server uses Nasdaq's stock screener for current U.S. quotes and market-cap rankings, plus State Street's daily SPY holdings workbook for current S&P 500 membership. No API key is required.
 
 The server is intentionally conservative with provider usage:
 
-- S&P 500 data uses one constituent request plus quote batches of at most 200 symbols.
-- Top 500 and Top 1000 use one shared Top 1000 cache, so switching between them does not refetch the provider.
+- S&P 500 data uses one Nasdaq universe request and one State Street holdings request.
+- Top 500 and Top 1000 use the same Nasdaq universe and shared Top 1000 cache.
+- Switching from the S&P 500 to a Top universe reuses the already-fetched Nasdaq response.
 - Successful responses are cached in memory for 15 minutes by default.
-- Concurrent requests for the same universe share one in-flight provider request.
-- Quote batches run sequentially to avoid request bursts.
-- Cached data can be served for up to 24 hours if FMP is unavailable or rate limiting.
+- Concurrent requests share in-flight universe and source requests.
+- Cached data can be served for up to 24 hours if a source is unavailable or rate limiting.
 - The browser also keeps each universe response for 60 seconds.
 
 This is a good default for a single application instance. For a scaled deployment, replace the in-memory cache with Redis or another shared cache so all instances reuse the same provider response.
 
 ## Setup
 
-Use Node.js 20.19 or newer and create an FMP API key. Endpoint availability depends on the FMP plan attached to that key.
+Use Node.js 20.19 or newer:
 
 ```bash
 cp .env.example .env
-# Add your FMP_API_KEY to .env
 npm install
 npm start
 ```
@@ -35,12 +34,15 @@ npm start
 
 | Variable | Default | Purpose |
 | --- | ---: | --- |
-| `FMP_API_KEY` | required | Server-only FMP credential |
+| `MARKET_DATA_PROVIDER` | `public` | Use `public`, or `fmp` for a compatible paid FMP plan |
+| `FMP_API_KEY` | unset | Server-only credential required when provider is `fmp` |
 | `MARKET_CACHE_MINUTES` | `15` | Fresh provider-response lifetime |
 | `MARKET_STALE_MINUTES` | `1440` | Maximum stale fallback lifetime |
 | `PORT` | `3001` | API/production server port |
 
-Do not prefix the API key with `REACT_APP_`; doing so would expose it in the browser bundle.
+FMP's free plan currently returns HTTP 402 for the constituent and batch-quote endpoints this app needs. Keep the default public provider unless your FMP subscription includes those endpoints. If you use FMP, do not prefix its key with `REACT_APP_`; doing so would expose it in the browser bundle.
+
+Public-source references: [Nasdaq Stock Screener](https://www.nasdaq.com/market-activity/stocks/screener) and [State Street SPY holdings](https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-500-etf-trust-spy).
 
 ## Commands
 

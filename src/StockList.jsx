@@ -375,7 +375,7 @@ function StockList() {
       </section>
 
       <footer>
-        <p>Data supplied by Financial Modeling Prep and cached to protect provider limits.</p>
+        <p>Data supplied by {data?.sources?.join(' and ') || 'public market sources'} and cached to protect provider limits.</p>
         <p>Quotes may be delayed. For research only, not investment advice.</p>
       </footer>
     </main>
