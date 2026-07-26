@@ -5,6 +5,8 @@ const DataGrid = React.lazy(() =>
 );
 
 const CLIENT_CACHE_TTL_MS = 60_000;
+const ZACKS_REPORT_HISTORY_KEY = 'northstar:zacks-best-history:v1';
+const MAX_ZACKS_REPORTS = 8;
 const responseCache = new Map();
 const pendingRequests = new Map();
 
@@ -68,6 +70,52 @@ function formatReportDate(value) {
 function stockDetailUrl(symbol) {
   const yahooSymbol = String(symbol || '').trim().toUpperCase().replaceAll('.', '-');
   return `https://finance.yahoo.com/quote/${encodeURIComponent(yahooSymbol)}/`;
+}
+
+function loadZacksReportHistory() {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(ZACKS_REPORT_HISTORY_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((report) => (
+      /^\d{4}-\d{2}-\d{2}$/.test(report?.reportDate || '')
+      && Array.isArray(report?.stocks)
+      && report.stocks.length === 7
+      && report.stocks.every((stock) => typeof stock?.symbol === 'string' && stock.symbol)
+    )).slice(0, MAX_ZACKS_REPORTS);
+  } catch {
+    return [];
+  }
+}
+
+function archiveZacksReport(payload, existingReports) {
+  if (payload?.universe !== 'zacksBest' || !/^\d{4}-\d{2}-\d{2}$/.test(payload.reportDate || '')) {
+    return existingReports;
+  }
+  if (!Array.isArray(payload.stocks) || payload.stocks.length !== 7) return existingReports;
+
+  const report = {
+    reportDate: payload.reportDate,
+    reportUrl: payload.reportUrl || '',
+    resolvedReportUrl: payload.resolvedReportUrl || '',
+    asOf: payload.asOf || '',
+    stocks: payload.stocks.map((stock, index) => ({ ...stock, listRank: index + 1 })),
+  };
+  const next = [report, ...existingReports.filter((item) => item.reportDate !== report.reportDate)]
+    .sort((left, right) => right.reportDate.localeCompare(left.reportDate))
+    .slice(0, MAX_ZACKS_REPORTS);
+
+  try {
+    window.localStorage.setItem(ZACKS_REPORT_HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    return next;
+  }
+  return next;
+}
+
+function openStockDetail({ row }, event) {
+  if (event.target.closest('a')) return;
+  window.open(stockDetailUrl(row.symbol), '_blank', 'noopener,noreferrer');
 }
 
 async function fetchUniverse(universe, force = false) {
@@ -221,6 +269,7 @@ function StockList() {
   const [sector, setSector] = React.useState('all');
   const [zacksFilter, setZacksFilter] = React.useState('all');
   const [refreshVersion, setRefreshVersion] = React.useState(0);
+  const [zacksReportHistory, setZacksReportHistory] = React.useState(loadZacksReportHistory);
   const isMobile = useMediaLayout('(max-width: 700px)');
   const isCompactTable = useMediaLayout('(max-width: 1300px)');
   const isNarrowTable = useMediaLayout('(max-width: 1000px)');
@@ -246,6 +295,11 @@ function StockList() {
     return () => { active = false; };
   }, [universe, refreshVersion]);
 
+  React.useEffect(() => {
+    if (data?.universe !== 'zacksBest') return;
+    setZacksReportHistory((reports) => archiveZacksReport(data, reports));
+  }, [data]);
+
   const stocks = React.useMemo(() => data?.stocks || [], [data]);
   const sectors = React.useMemo(
     () => [...new Set(stocks.map((stock) => stock.sector).filter(Boolean))].sort(),
@@ -264,6 +318,10 @@ function StockList() {
       return matchesSearch && matchesSector && matchesZacks;
     });
   }, [search, sector, stocks, zacksFilter]);
+  const previousZacksReports = React.useMemo(
+    () => zacksReportHistory.filter((report) => report.reportDate !== data?.reportDate).slice(0, MAX_ZACKS_REPORTS - 1),
+    [data?.reportDate, zacksReportHistory]
+  );
 
   const stats = React.useMemo(() => {
     const moves = stocks.map((stock) => stock.changePercentage).filter(Number.isFinite).sort((a, b) => a - b);
@@ -285,7 +343,7 @@ function StockList() {
       headerName: '#',
       width: 64,
       sortable: false,
-      valueGetter: (_value, row) => row.marketRank ?? stocks.findIndex((stock) => stock.symbol === row.symbol) + 1,
+      valueGetter: (_value, row) => row.marketRank ?? row.listRank ?? stocks.findIndex((stock) => stock.symbol === row.symbol) + 1,
     },
     {
       field: 'symbol',
@@ -468,10 +526,7 @@ function StockList() {
                       pe: !isCompactTable,
                       volume: !isCompactTable,
                     }}
-                    onRowClick={({ row }, event) => {
-                      if (event.target.closest('a')) return;
-                      window.open(stockDetailUrl(row.symbol), '_blank', 'noopener,noreferrer');
-                    }}
+                    onRowClick={openStockDetail}
                     autoHeight
                     disableRowSelectionOnClick
                     rowHeight={68}
@@ -487,6 +542,69 @@ function StockList() {
           </>
         )}
       </section>
+
+      {isBestStocksUniverse && !loading && !error && (
+        <section className="report-history" aria-labelledby="report-history-title">
+          <div className="report-history__heading">
+            <div>
+              <span className="eyebrow">SAVED WEEKLY EDITIONS</span>
+              <h2 id="report-history-title">Previous 7 Best Stocks</h2>
+              <p>Reports previously viewed in this browser are kept by edition date without additional provider requests.</p>
+            </div>
+            <span>{previousZacksReports.length} saved {previousZacksReports.length === 1 ? 'week' : 'weeks'}</span>
+          </div>
+
+          {previousZacksReports.length ? previousZacksReports.map((report) => (
+            <article className="archived-report" key={report.reportDate}>
+              <div className="archived-report__heading">
+                <div>
+                  <span className="eyebrow">WEEK OF</span>
+                  <h3>{formatReportDate(report.reportDate)}</h3>
+                </div>
+                {(report.resolvedReportUrl || report.reportUrl) && (
+                  <a href={report.resolvedReportUrl || report.reportUrl} target="_blank" rel="noreferrer">View source report</a>
+                )}
+              </div>
+
+              {isMobile ? (
+                <div className="mobile-list archived-mobile-list">
+                  {report.stocks.map((stock, index) => (
+                    <StockCard key={stock.symbol} stock={stock} rank={stock.listRank ?? index + 1} isEtf={false} />
+                  ))}
+                </div>
+              ) : (
+                <div className="desktop-grid archived-grid">
+                  <React.Suspense fallback={<LoadingState />}>
+                    <DataGrid
+                      rows={report.stocks}
+                      columns={columns}
+                      getRowId={(row) => row.symbol}
+                      columnVisibilityModel={{
+                        marketCap: !isNarrowTable,
+                        sector: !isNarrowTable,
+                        pe: !isCompactTable,
+                        volume: !isCompactTable,
+                      }}
+                      onRowClick={openStockDetail}
+                      autoHeight
+                      disableRowSelectionOnClick
+                      rowHeight={68}
+                      columnHeaderHeight={52}
+                      hideFooter
+                      sx={{ border: 0 }}
+                    />
+                  </React.Suspense>
+                </div>
+              )}
+            </article>
+          )) : (
+            <div className="empty-history">
+              <strong>No earlier edition is cached yet.</strong>
+              <span>When the report changes next week, this week’s seven stocks will appear here automatically.</span>
+            </div>
+          )}
+        </section>
+      )}
 
       <footer>
         <p>Data supplied by {data?.sources?.join(' and ') || 'public market sources'} and cached to protect provider limits.</p>

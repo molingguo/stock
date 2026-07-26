@@ -27,6 +27,18 @@ const unratedStock = {
 };
 
 test('loads, filters, and switches stock universes', async () => {
+  window.localStorage.setItem('northstar:zacks-best-history:v1', JSON.stringify([{
+    reportDate: '2026-07-17',
+    reportUrl: 'https://www.zacks.com/previous',
+    resolvedReportUrl: 'https://www.zacks.com/example?edition=20260717abc',
+    asOf: '2026-07-17T16:00:00.000Z',
+    stocks: Array.from({ length: 7 }, (_, index) => ({
+      ...stock,
+      symbol: index === 0 ? 'IBM' : `OLD${index}`,
+      name: index === 0 ? 'International Business Machines' : `Previous company ${index}`,
+      listRank: index + 1,
+    })),
+  }]));
   window.matchMedia = vi.fn(() => ({
     matches: true,
     addEventListener: vi.fn(),
@@ -79,5 +91,8 @@ test('loads, filters, and switches stock universes', async () => {
   fireEvent.click(screen.getByRole('button', { name: /7 best stocks/i }));
   expect(await screen.findByRole('heading', { name: 'Zacks 7 Best Stocks' })).toBeInTheDocument();
   expect(screen.getByText('Report updated Jul 24, 2026')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Previous 7 Best Stocks' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Jul 17, 2026' })).toBeInTheDocument();
+  expect(screen.getByText('IBM')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=zacksBest');
 });
