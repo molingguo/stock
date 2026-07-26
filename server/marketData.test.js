@@ -105,7 +105,15 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
       arrayBuffer: async () => Buffer.alloc(0),
     };
   };
-  const service = createMarketDataService({ fetchImpl, parseHoldings: () => [{ symbol: 'AAA' }] });
+  const piotroskiScoresService = {
+    getScore: (symbol) => symbol === 'AAA' ? { score: 8, signals: 9 } : null,
+    getMetadata: () => ({ generatedAt: '2026-07-26T12:00:00.000Z', scoreYear: 2025 }),
+  };
+  const service = createMarketDataService({
+    fetchImpl,
+    parseHoldings: () => [{ symbol: 'AAA' }],
+    piotroskiScoresService,
+  });
 
   const result = await service.getStocks('sp500');
   const extendedResult = await service.getStocks('extendedMarket');
@@ -120,6 +128,9 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.stocks[0].exchange, 'NASDAQ');
   assert.equal(result.stocks[0].yearLow, 8.25);
   assert.equal(result.stocks[0].yearHigh, 14.75);
+  assert.equal(result.stocks[0].piotroskiScore, 8);
+  assert.equal(result.piotroskiCoverage, 1);
+  assert.equal(result.piotroskiScoreYear, 2025);
   assert.equal(result.zacksCoverage, 1);
   assert.equal(extendedResult.label, 'U.S. Extended Market');
   assert.deepEqual(extendedResult.stocks.map((stock) => stock.symbol), ['BBB']);

@@ -2,6 +2,7 @@ const { parseSpyHoldings } = require('./spyHoldings');
 const { createZacksRatingsService } = require('./zacksRatings');
 const { createZacksBestStocksService } = require('./zacksBestStocks');
 const { POPULAR_ETFS } = require('./popularEtfs');
+const { createPiotroskiScoresService } = require('./piotroskiScores');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 const NASDAQ_SCREENER_URL = 'https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10000&download=true';
@@ -127,6 +128,7 @@ function createMarketDataService({
   staleTtlMs = cacheDuration(process.env.MARKET_STALE_MINUTES, DEFAULT_STALE_TTL_MS),
   ratingsService,
   bestStocksService,
+  piotroskiScoresService,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
   if (!['public', 'fmp'].includes(provider)) {
@@ -139,6 +141,7 @@ function createMarketDataService({
   const resourceInFlight = new Map();
   const zacksRatings = ratingsService || createZacksRatingsService({ fetchImpl, now });
   const zacksBestStocks = bestStocksService || createZacksBestStocksService({ fetchImpl, now });
+  const piotroskiScores = piotroskiScoresService || createPiotroskiScoresService();
 
   async function fetchWithTimeout(url, options = {}) {
     return fetchImpl(url, { ...options, signal: AbortSignal.timeout(12_000) });
@@ -338,13 +341,16 @@ function createMarketDataService({
         reportCacheStatus: entry.reportCacheStatus,
       } : {}),
       zacksCoverage: stocks.filter((stock) => stock.zacksRank !== null).length,
+      piotroskiCoverage: stocks.filter((stock) => Number.isInteger(stock.piotroskiScore)).length,
+      piotroskiAsOf: piotroskiScores.getMetadata().generatedAt,
+      piotroskiScoreYear: piotroskiScores.getMetadata().scoreYear,
       sources: universe === 'zacksBest'
-        ? ['Zacks 7 Best Stocks report', 'Zacks quote feed']
+        ? ['Zacks 7 Best Stocks report', 'Zacks quote feed', 'SEC company filings']
         : universe === 'popularEtfs'
         ? ['Zacks']
         : provider === 'fmp'
-          ? ['Financial Modeling Prep', 'Zacks']
-          : ['Nasdaq', 'State Street SPY holdings', 'Zacks'],
+          ? ['Financial Modeling Prep', 'Zacks', 'SEC company filings']
+          : ['Nasdaq', 'State Street SPY holdings', 'Zacks', 'SEC company filings'],
       stocks,
     };
   }
@@ -371,6 +377,7 @@ function createMarketDataService({
           yearHigh: stock.yearHigh ?? quote?.yearHigh ?? null,
           zacksRank: rating?.rank || null,
           zacksRankText: rating?.text || '',
+          piotroskiScore: piotroskiScores.getScore(stock.symbol)?.score ?? null,
         };
       }),
     };

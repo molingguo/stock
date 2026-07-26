@@ -8,6 +8,7 @@ AWS references:
 - [Amplify Hosting deployment specification](https://docs.aws.amazon.com/amplify/latest/userguide/ssr-deployment-specification.html)
 - [Amplify build settings](https://docs.aws.amazon.com/amplify/latest/userguide/build-settings.html)
 - [Setting Amplify environment variables](https://docs.aws.amazon.com/amplify/latest/userguide/setting-env-vars.html)
+- [SEC XBRL data APIs](https://www.sec.gov/search-filings/edgar-application-programming-interfaces)
 
 ## Repository setup completed
 
@@ -18,6 +19,7 @@ The following deployment automation is already implemented:
 - `scripts/amplifyServer.js` starts Express on Amplify's required port.
 - `scripts/buildAmplify.js` assembles the static and compute artifacts, installs production-only dependencies, copies only approved non-secret runtime settings, and enforces Amplify's 220 MB compute limit.
 - `npm run build:amplify` produces the complete deployment artifact.
+- `npm run refresh:scores` refreshes a generated Piotroski F-score cache from SEC bulk XBRL frames before Amplify packages the server.
 - `.amplify-hosting` is excluded from Git.
 
 The packaged application has been verified locally:
@@ -28,6 +30,12 @@ The packaged application has been verified locally:
 - `/`, `/api/health`, and `/api/stocks?universe=zacksBest` return HTTP 200 from the packaged server.
 
 The remaining work requires access to the AWS Amplify console and permission to push the local `main` branch.
+
+### How SEC F-scores are refreshed
+
+Piotroski F-scores are calculated from annual SEC filing facts during an Amplify build, not during a page request. The refresh uses fewer than 30 bulk SEC frame requests for the entire market, writes only complete nine-signal scores to `server/data/piotroskiScores.json`, and then packages that generated cache with the Express server. Normal `/api/stocks` requests only read the local cache and therefore add no SEC calls per ticker or visitor.
+
+If SEC is temporarily unavailable during a deployment, the refresh command logs a warning and packages the checked-in cache instead. No additional Amplify environment variable or paid API key is required. A score is not shown for ETFs or companies whose filing facts cannot support all nine signals.
 
 ## 1. Add the Amplify environment variables
 
@@ -111,6 +119,7 @@ Pushing `main` should start an Amplify deployment automatically.
 ```text
 nvm use 22
 npm ci
+npm run refresh:scores
 npm run build:amplify
 ```
 
@@ -156,6 +165,8 @@ The response should be JSON containing:
 - `"count": 7`
 - `reportDate`
 - `zacksCoverage`
+- `piotroskiCoverage`
+- `piotroskiScoreYear`
 - A seven-item `stocks` array
 
 Also verify the default universe:
@@ -173,8 +184,9 @@ The first uncached request can take longer because it retrieves and enriches the
 3. Open **Popular ETFs** and confirm that prices and available Zacks ranks appear.
 4. Open **Extended Market** and confirm that its row numbers preserve the original top-1000 ranks.
 5. Open **7 Best Stocks** and confirm that the report date and seven tickers appear.
-6. Test at a mobile viewport or on a phone.
-7. Open the browser Network panel and confirm `/api/stocks?...` requests return HTTP 200 with JSON.
+6. Confirm that available stock rows show an SEC-derived **F-score** between 0 and 9 and that ETFs show no score.
+7. Test at a mobile viewport or on a phone.
+8. Open the browser Network panel and confirm `/api/stocks?...` requests return HTTP 200 with JSON.
 
 ## Troubleshooting
 

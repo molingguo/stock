@@ -1,0 +1,3186 @@
+{
+  "version": 1,
+  "generatedAt": "2026-07-26T04:35:50.326Z",
+  "scoreYear": 2025,
+  "priorYear": 2024,
+  "source": "SEC company filings",
+  "methodology": "Piotroski F-score calculated from SEC XBRL annual calendar frames; only complete nine-signal scores are published.",
+  "scores": {
+    "AAOI": {
+      "score": 4,
+      "signals": 9
+    },
+    "AAP": {
+      "score": 4,
+      "signals": 9
+    },
+    "AAPL": {
+      "score": 8,
+      "signals": 9
+    },
+    "ABG": {
+      "score": 6,
+      "signals": 9
+    },
+    "ABLV": {
+      "score": 5,
+      "signals": 9
+    },
+    "ABLVW": {
+      "score": 5,
+      "signals": 9
+    },
+    "ABX": {
+      "score": 4,
+      "signals": 9
+    },
+    "ABXL": {
+      "score": 4,
+      "signals": 9
+    },
+    "ACA": {
+      "score": 7,
+      "signals": 9
+    },
+    "ACCO": {
+      "score": 6,
+      "signals": 9
+    },
+    "ACCS": {
+      "score": 7,
+      "signals": 9
+    },
+    "ACI": {
+      "score": 5,
+      "signals": 9
+    },
+    "ACM": {
+      "score": 6,
+      "signals": 9
+    },
+    "ACMR": {
+      "score": 2,
+      "signals": 9
+    },
+    "ACU": {
+      "score": 7,
+      "signals": 9
+    },
+    "ADI": {
+      "score": 7,
+      "signals": 9
+    },
+    "ADM": {
+      "score": 6,
+      "signals": 9
+    },
+    "ADMA": {
+      "score": 5,
+      "signals": 9
+    },
+    "ADNT": {
+      "score": 7,
+      "signals": 9
+    },
+    "ADUS": {
+      "score": 7,
+      "signals": 9
+    },
+    "AESI": {
+      "score": 3,
+      "signals": 9
+    },
+    "AEYE": {
+      "score": 4,
+      "signals": 9
+    },
+    "AFRI": {
+      "score": 4,
+      "signals": 9
+    },
+    "AFRIW": {
+      "score": 4,
+      "signals": 9
+    },
+    "AGCO": {
+      "score": 8,
+      "signals": 9
+    },
+    "AGYS": {
+      "score": 7,
+      "signals": 9
+    },
+    "AIN": {
+      "score": 3,
+      "signals": 9
+    },
+    "AIOT": {
+      "score": 5,
+      "signals": 9
+    },
+    "AIRI": {
+      "score": 3,
+      "signals": 9
+    },
+    "AIT": {
+      "score": 6,
+      "signals": 9
+    },
+    "AKA": {
+      "score": 4,
+      "signals": 9
+    },
+    "ALB": {
+      "score": 6,
+      "signals": 9
+    },
+    "ALB.PA": {
+      "score": 6,
+      "signals": 9
+    },
+    "ALCO": {
+      "score": 4,
+      "signals": 9
+    },
+    "ALG": {
+      "score": 5,
+      "signals": 9
+    },
+    "ALGM": {
+      "score": 7,
+      "signals": 9
+    },
+    "ALIT": {
+      "score": 4,
+      "signals": 9
+    },
+    "ALOT": {
+      "score": 4,
+      "signals": 9
+    },
+    "ALSN": {
+      "score": 6,
+      "signals": 9
+    },
+    "ALTG": {
+      "score": 5,
+      "signals": 9
+    },
+    "ALTG.PA": {
+      "score": 5,
+      "signals": 9
+    },
+    "ALTO": {
+      "score": 7,
+      "signals": 9
+    },
+    "ALUR": {
+      "score": 2,
+      "signals": 9
+    },
+    "ALURD": {
+      "score": 2,
+      "signals": 9
+    },
+    "ALURW": {
+      "score": 2,
+      "signals": 9
+    },
+    "ALV": {
+      "score": 8,
+      "signals": 9
+    },
+    "AMAT": {
+      "score": 6,
+      "signals": 9
+    },
+    "AMCCF": {
+      "score": 5,
+      "signals": 9
+    },
+    "AMCR": {
+      "score": 5,
+      "signals": 9
+    },
+    "AMD": {
+      "score": 8,
+      "signals": 9
+    },
+    "AMKR": {
+      "score": 4,
+      "signals": 9
+    },
+    "AMPH": {
+      "score": 6,
+      "signals": 9
+    },
+    "AMRX": {
+      "score": 7,
+      "signals": 9
+    },
+    "AMS": {
+      "score": 4,
+      "signals": 9
+    },
+    "AN": {
+      "score": 5,
+      "signals": 9
+    },
+    "ANDE": {
+      "score": 4,
+      "signals": 9
+    },
+    "AORT": {
+      "score": 7,
+      "signals": 9
+    },
+    "AOS": {
+      "score": 8,
+      "signals": 9
+    },
+    "AOSL": {
+      "score": 5,
+      "signals": 9
+    },
+    "APG": {
+      "score": 8,
+      "signals": 9
+    },
+    "APH": {
+      "score": 6,
+      "signals": 9
+    },
+    "APOG": {
+      "score": 6,
+      "signals": 9
+    },
+    "APPN": {
+      "score": 6,
+      "signals": 9
+    },
+    "APPS": {
+      "score": 7,
+      "signals": 9
+    },
+    "ARAY": {
+      "score": 6,
+      "signals": 9
+    },
+    "AREN": {
+      "score": 7,
+      "signals": 9
+    },
+    "AROC": {
+      "score": 8,
+      "signals": 9
+    },
+    "ARRY": {
+      "score": 5,
+      "signals": 9
+    },
+    "ARTW": {
+      "score": 3,
+      "signals": 9
+    },
+    "ARW": {
+      "score": 5,
+      "signals": 9
+    },
+    "ASLE": {
+      "score": 4,
+      "signals": 9
+    },
+    "ASNS": {
+      "score": 3,
+      "signals": 9
+    },
+    "ASO": {
+      "score": 7,
+      "signals": 9
+    },
+    "ASPI": {
+      "score": 4,
+      "signals": 9
+    },
+    "ASTE": {
+      "score": 5,
+      "signals": 9
+    },
+    "ASYS": {
+      "score": 2,
+      "signals": 9
+    },
+    "ATI": {
+      "score": 8,
+      "signals": 9
+    },
+    "ATKR": {
+      "score": 4,
+      "signals": 9
+    },
+    "ATMU": {
+      "score": 7,
+      "signals": 9
+    },
+    "ATRC": {
+      "score": 7,
+      "signals": 9
+    },
+    "ATRO": {
+      "score": 7,
+      "signals": 9
+    },
+    "ATROB": {
+      "score": 7,
+      "signals": 9
+    },
+    "AVAH": {
+      "score": 8,
+      "signals": 9
+    },
+    "AVD": {
+      "score": 5,
+      "signals": 9
+    },
+    "AVHHL": {
+      "score": 3,
+      "signals": 9
+    },
+    "AVNT": {
+      "score": 6,
+      "signals": 9
+    },
+    "AVO": {
+      "score": 6,
+      "signals": 9
+    },
+    "AVTR": {
+      "score": 5,
+      "signals": 9
+    },
+    "AVY": {
+      "score": 5,
+      "signals": 9
+    },
+    "AWHL": {
+      "score": 4,
+      "signals": 9
+    },
+    "AWI": {
+      "score": 9,
+      "signals": 9
+    },
+    "AXGN": {
+      "score": 5,
+      "signals": 9
+    },
+    "AXON": {
+      "score": 5,
+      "signals": 9
+    },
+    "AYI": {
+      "score": 4,
+      "signals": 9
+    },
+    "AZO": {
+      "score": 6,
+      "signals": 9
+    },
+    "AZZ": {
+      "score": 6,
+      "signals": 9
+    },
+    "BA": {
+      "score": 6,
+      "signals": 9
+    },
+    "BA.PA": {
+      "score": 6,
+      "signals": 9
+    },
+    "BAER": {
+      "score": 7,
+      "signals": 9
+    },
+    "BAERW": {
+      "score": 7,
+      "signals": 9
+    },
+    "BAND": {
+      "score": 6,
+      "signals": 9
+    },
+    "BAX": {
+      "score": 4,
+      "signals": 9
+    },
+    "BBAI": {
+      "score": 4,
+      "signals": 9
+    },
+    "BBAI.WT": {
+      "score": 4,
+      "signals": 9
+    },
+    "BBCP": {
+      "score": 6,
+      "signals": 9
+    },
+    "BBWI": {
+      "score": 6,
+      "signals": 9
+    },
+    "BBY": {
+      "score": 7,
+      "signals": 9
+    },
+    "BDC": {
+      "score": 8,
+      "signals": 9
+    },
+    "BDMD": {
+      "score": 1,
+      "signals": 9
+    },
+    "BDMDW": {
+      "score": 1,
+      "signals": 9
+    },
+    "BEIGF": {
+      "score": 7,
+      "signals": 9
+    },
+    "BF.A": {
+      "score": 6,
+      "signals": 9
+    },
+    "BF.B": {
+      "score": 6,
+      "signals": 9
+    },
+    "BFAM": {
+      "score": 8,
+      "signals": 9
+    },
+    "BG": {
+      "score": 3,
+      "signals": 9
+    },
+    "BGS": {
+      "score": 5,
+      "signals": 9
+    },
+    "BGSF": {
+      "score": 5,
+      "signals": 9
+    },
+    "BHE": {
+      "score": 7,
+      "signals": 9
+    },
+    "BIO": {
+      "score": 6,
+      "signals": 9
+    },
+    "BIO.B": {
+      "score": 6,
+      "signals": 9
+    },
+    "BKD": {
+      "score": 4,
+      "signals": 9
+    },
+    "BLBD": {
+      "score": 7,
+      "signals": 9
+    },
+    "BLDR": {
+      "score": 5,
+      "signals": 9
+    },
+    "BLKB": {
+      "score": 8,
+      "signals": 9
+    },
+    "BOC": {
+      "score": 4,
+      "signals": 9
+    },
+    "BODI": {
+      "score": 5,
+      "signals": 9
+    },
+    "BODYW": {
+      "score": 5,
+      "signals": 9
+    },
+    "BOOM": {
+      "score": 5,
+      "signals": 9
+    },
+    "BOSC": {
+      "score": 8,
+      "signals": 9
+    },
+    "BOX": {
+      "score": 4,
+      "signals": 9
+    },
+    "BOXL": {
+      "score": 3,
+      "signals": 9
+    },
+    "BRBR": {
+      "score": 4,
+      "signals": 9
+    },
+    "BRCC": {
+      "score": 4,
+      "signals": 9
+    },
+    "BRFH": {
+      "score": 3,
+      "signals": 9
+    },
+    "BRGX": {
+      "score": 6,
+      "signals": 9
+    },
+    "BRKR": {
+      "score": 4,
+      "signals": 9
+    },
+    "BRKRP": {
+      "score": 4,
+      "signals": 9
+    },
+    "BRLT": {
+      "score": 5,
+      "signals": 9
+    },
+    "BSY": {
+      "score": 9,
+      "signals": 9
+    },
+    "BTSG": {
+      "score": 7,
+      "signals": 9
+    },
+    "BTSGU": {
+      "score": 7,
+      "signals": 9
+    },
+    "BVS": {
+      "score": 8,
+      "signals": 9
+    },
+    "BWMG": {
+      "score": 3,
+      "signals": 9
+    },
+    "BXC": {
+      "score": 4,
+      "signals": 9
+    },
+    "BXCAP": {
+      "score": 4,
+      "signals": 9
+    },
+    "BYND": {
+      "score": 3,
+      "signals": 9
+    },
+    "CAH": {
+      "score": 7,
+      "signals": 9
+    },
+    "CALY": {
+      "score": 6,
+      "signals": 9
+    },
+    "CAN": {
+      "score": 4,
+      "signals": 9
+    },
+    "CBT": {
+      "score": 6,
+      "signals": 9
+    },
+    "CC": {
+      "score": 4,
+      "signals": 9
+    },
+    "CCM": {
+      "score": 6,
+      "signals": 9
+    },
+    "CCSI": {
+      "score": 5,
+      "signals": 9
+    },
+    "CDRE": {
+      "score": 5,
+      "signals": 9
+    },
+    "CDW": {
+      "score": 5,
+      "signals": 9
+    },
+    "CE": {
+      "score": 5,
+      "signals": 9
+    },
+    "CECO": {
+      "score": 5,
+      "signals": 9
+    },
+    "CELH": {
+      "score": 4,
+      "signals": 9
+    },
+    "CENN": {
+      "score": 1,
+      "signals": 9
+    },
+    "CENT": {
+      "score": 7,
+      "signals": 9
+    },
+    "CENTA": {
+      "score": 7,
+      "signals": 9
+    },
+    "CETX": {
+      "score": 5,
+      "signals": 9
+    },
+    "CETXP": {
+      "score": 5,
+      "signals": 9
+    },
+    "CHD": {
+      "score": 6,
+      "signals": 9
+    },
+    "CHEF": {
+      "score": 8,
+      "signals": 9
+    },
+    "CHPT": {
+      "score": 5,
+      "signals": 9
+    },
+    "CIEN": {
+      "score": 7,
+      "signals": 9
+    },
+    "CIRC": {
+      "score": 4,
+      "signals": 9
+    },
+    "CISO": {
+      "score": 6,
+      "signals": 9
+    },
+    "CL": {
+      "score": 6,
+      "signals": 9
+    },
+    "CLMB": {
+      "score": 5,
+      "signals": 9
+    },
+    "CLMT": {
+      "score": 5,
+      "signals": 9
+    },
+    "CLS": {
+      "score": 7,
+      "signals": 9
+    },
+    "CLX": {
+      "score": 8,
+      "signals": 9
+    },
+    "CMBMF": {
+      "score": 4,
+      "signals": 9
+    },
+    "CMCO": {
+      "score": 4,
+      "signals": 9
+    },
+    "CMP": {
+      "score": 5,
+      "signals": 9
+    },
+    "CMT": {
+      "score": 6,
+      "signals": 9
+    },
+    "CMTL": {
+      "score": 3,
+      "signals": 9
+    },
+    "CNC": {
+      "score": 4,
+      "signals": 9
+    },
+    "CNM": {
+      "score": 7,
+      "signals": 9
+    },
+    "CNXC": {
+      "score": 4,
+      "signals": 9
+    },
+    "CODI": {
+      "score": 5,
+      "signals": 9
+    },
+    "CODI.PA": {
+      "score": 5,
+      "signals": 9
+    },
+    "CODI.PB": {
+      "score": 5,
+      "signals": 9
+    },
+    "CODI.PC": {
+      "score": 5,
+      "signals": 9
+    },
+    "COO": {
+      "score": 6,
+      "signals": 9
+    },
+    "COOK": {
+      "score": 4,
+      "signals": 9
+    },
+    "COR": {
+      "score": 5,
+      "signals": 9
+    },
+    "COTY": {
+      "score": 7,
+      "signals": 9
+    },
+    "CPRI": {
+      "score": 6,
+      "signals": 9
+    },
+    "CRH": {
+      "score": 6,
+      "signals": 9
+    },
+    "CRI": {
+      "score": 5,
+      "signals": 9
+    },
+    "CRLBF": {
+      "score": 2,
+      "signals": 9
+    },
+    "CRM": {
+      "score": 7,
+      "signals": 9
+    },
+    "CRNC": {
+      "score": 6,
+      "signals": 9
+    },
+    "CROX": {
+      "score": 5,
+      "signals": 9
+    },
+    "CRS": {
+      "score": 7,
+      "signals": 9
+    },
+    "CRSR": {
+      "score": 7,
+      "signals": 9
+    },
+    "CSCO": {
+      "score": 6,
+      "signals": 9
+    },
+    "CSGP": {
+      "score": 5,
+      "signals": 9
+    },
+    "CSV": {
+      "score": 6,
+      "signals": 9
+    },
+    "CSW": {
+      "score": 3,
+      "signals": 9
+    },
+    "CTNT": {
+      "score": 3,
+      "signals": 9
+    },
+    "CTOS": {
+      "score": 5,
+      "signals": 9
+    },
+    "CTRI": {
+      "score": 7,
+      "signals": 9
+    },
+    "CURLF": {
+      "score": 4,
+      "signals": 9
+    },
+    "CURV": {
+      "score": 1,
+      "signals": 9
+    },
+    "CVAT": {
+      "score": 0,
+      "signals": 9
+    },
+    "CVEO": {
+      "score": 6,
+      "signals": 9
+    },
+    "CVGI": {
+      "score": 6,
+      "signals": 9
+    },
+    "CVNA": {
+      "score": 6,
+      "signals": 9
+    },
+    "CVRX": {
+      "score": 4,
+      "signals": 9
+    },
+    "CVSI": {
+      "score": 5,
+      "signals": 9
+    },
+    "CVU": {
+      "score": 2,
+      "signals": 9
+    },
+    "CW": {
+      "score": 8,
+      "signals": 9
+    },
+    "CWCO": {
+      "score": 5,
+      "signals": 9
+    },
+    "CWGL": {
+      "score": 6,
+      "signals": 9
+    },
+    "DAKT": {
+      "score": 7,
+      "signals": 9
+    },
+    "DAR": {
+      "score": 8,
+      "signals": 9
+    },
+    "DBD": {
+      "score": 8,
+      "signals": 9
+    },
+    "DCH": {
+      "score": 3,
+      "signals": 9
+    },
+    "DCO": {
+      "score": 5,
+      "signals": 9
+    },
+    "DDD": {
+      "score": 4,
+      "signals": 9
+    },
+    "DELL": {
+      "score": 8,
+      "signals": 9
+    },
+    "DFLI": {
+      "score": 5,
+      "signals": 9
+    },
+    "DFLIW": {
+      "score": 5,
+      "signals": 9
+    },
+    "DG": {
+      "score": 7,
+      "signals": 9
+    },
+    "DGII": {
+      "score": 5,
+      "signals": 9
+    },
+    "DH": {
+      "score": 5,
+      "signals": 9
+    },
+    "DHR": {
+      "score": 6,
+      "signals": 9
+    },
+    "DIN": {
+      "score": 6,
+      "signals": 9
+    },
+    "DMC": {
+      "score": 7,
+      "signals": 9
+    },
+    "DOCN": {
+      "score": 7,
+      "signals": 9
+    },
+    "DOMO": {
+      "score": 6,
+      "signals": 9
+    },
+    "DORM": {
+      "score": 8,
+      "signals": 9
+    },
+    "DPZ": {
+      "score": 8,
+      "signals": 9
+    },
+    "DRCT": {
+      "score": 4,
+      "signals": 9
+    },
+    "DRS": {
+      "score": 7,
+      "signals": 9
+    },
+    "DRTTF": {
+      "score": 4,
+      "signals": 9
+    },
+    "DSGR": {
+      "score": 6,
+      "signals": 9
+    },
+    "DXPE": {
+      "score": 7,
+      "signals": 9
+    },
+    "EACO": {
+      "score": 8,
+      "signals": 9
+    },
+    "EAF": {
+      "score": 3,
+      "signals": 9
+    },
+    "EBAY": {
+      "score": 5,
+      "signals": 9
+    },
+    "ECG": {
+      "score": 6,
+      "signals": 9
+    },
+    "ECVT": {
+      "score": 6,
+      "signals": 9
+    },
+    "EDBL": {
+      "score": 3,
+      "signals": 9
+    },
+    "EDBLW": {
+      "score": 3,
+      "signals": 9
+    },
+    "EDUC": {
+      "score": 4,
+      "signals": 9
+    },
+    "EFOR": {
+      "score": 4,
+      "signals": 9
+    },
+    "EGHT": {
+      "score": 6,
+      "signals": 9
+    },
+    "EH": {
+      "score": 3,
+      "signals": 9
+    },
+    "EHTH": {
+      "score": 3,
+      "signals": 9
+    },
+    "ELA": {
+      "score": 6,
+      "signals": 9
+    },
+    "ELAN": {
+      "score": 6,
+      "signals": 9
+    },
+    "ELF": {
+      "score": 4,
+      "signals": 9
+    },
+    "EMBC": {
+      "score": 7,
+      "signals": 9
+    },
+    "EML": {
+      "score": 7,
+      "signals": 9
+    },
+    "EMN": {
+      "score": 5,
+      "signals": 9
+    },
+    "EMPD": {
+      "score": 3,
+      "signals": 9
+    },
+    "EMR": {
+      "score": 7,
+      "signals": 9
+    },
+    "ENOV": {
+      "score": 4,
+      "signals": 9
+    },
+    "ENPH": {
+      "score": 6,
+      "signals": 9
+    },
+    "ENR": {
+      "score": 7,
+      "signals": 9
+    },
+    "ENTG": {
+      "score": 6,
+      "signals": 9
+    },
+    "ENVX": {
+      "score": 5,
+      "signals": 9
+    },
+    "EOLS": {
+      "score": 3,
+      "signals": 9
+    },
+    "EOSE": {
+      "score": 6,
+      "signals": 9
+    },
+    "EOSER": {
+      "score": 6,
+      "signals": 9
+    },
+    "EPAC": {
+      "score": 7,
+      "signals": 9
+    },
+    "EPC": {
+      "score": 5,
+      "signals": 9
+    },
+    "EPOW": {
+      "score": 0,
+      "signals": 9
+    },
+    "ESAB": {
+      "score": 5,
+      "signals": 9
+    },
+    "ESLT": {
+      "score": 8,
+      "signals": 9
+    },
+    "ESTA": {
+      "score": 4,
+      "signals": 9
+    },
+    "EVGO": {
+      "score": 5,
+      "signals": 9
+    },
+    "EVI": {
+      "score": 7,
+      "signals": 9
+    },
+    "EVLV": {
+      "score": 4,
+      "signals": 9
+    },
+    "EVLVW": {
+      "score": 4,
+      "signals": 9
+    },
+    "EW": {
+      "score": 5,
+      "signals": 9
+    },
+    "EXLS": {
+      "score": 8,
+      "signals": 9
+    },
+    "EXP": {
+      "score": 5,
+      "signals": 9
+    },
+    "EXTR": {
+      "score": 7,
+      "signals": 9
+    },
+    "EZPW": {
+      "score": 6,
+      "signals": 9
+    },
+    "FAST": {
+      "score": 7,
+      "signals": 9
+    },
+    "FBGL": {
+      "score": 4,
+      "signals": 9
+    },
+    "FCFS": {
+      "score": 7,
+      "signals": 9
+    },
+    "FCN": {
+      "score": 5,
+      "signals": 9
+    },
+    "FELE": {
+      "score": 5,
+      "signals": 9
+    },
+    "FET": {
+      "score": 6,
+      "signals": 9
+    },
+    "FIX": {
+      "score": 7,
+      "signals": 9
+    },
+    "FLEX": {
+      "score": 7,
+      "signals": 9
+    },
+    "FLR": {
+      "score": 2,
+      "signals": 9
+    },
+    "FLS": {
+      "score": 7,
+      "signals": 9
+    },
+    "FND": {
+      "score": 6,
+      "signals": 9
+    },
+    "FORM": {
+      "score": 5,
+      "signals": 9
+    },
+    "FOXF": {
+      "score": 4,
+      "signals": 9
+    },
+    "FSI": {
+      "score": 5,
+      "signals": 9
+    },
+    "FSLR": {
+      "score": 7,
+      "signals": 9
+    },
+    "FSS": {
+      "score": 6,
+      "signals": 9
+    },
+    "FTDR": {
+      "score": 7,
+      "signals": 9
+    },
+    "FTNT": {
+      "score": 5,
+      "signals": 9
+    },
+    "FTV": {
+      "score": 5,
+      "signals": 9
+    },
+    "G": {
+      "score": 6,
+      "signals": 9
+    },
+    "GAIA": {
+      "score": 6,
+      "signals": 9
+    },
+    "GAP": {
+      "score": 6,
+      "signals": 9
+    },
+    "GCO": {
+      "score": 7,
+      "signals": 9
+    },
+    "GCTS": {
+      "score": 1,
+      "signals": 9
+    },
+    "GCTS.WT": {
+      "score": 1,
+      "signals": 9
+    },
+    "GEN": {
+      "score": 7,
+      "signals": 9
+    },
+    "GENVR": {
+      "score": 7,
+      "signals": 9
+    },
+    "GILT": {
+      "score": 4,
+      "signals": 9
+    },
+    "GLAS": {
+      "score": 3,
+      "signals": 9
+    },
+    "GLW": {
+      "score": 7,
+      "signals": 9
+    },
+    "GNE": {
+      "score": 6,
+      "signals": 9
+    },
+    "GNRC": {
+      "score": 6,
+      "signals": 9
+    },
+    "GO": {
+      "score": 5,
+      "signals": 9
+    },
+    "GOLF": {
+      "score": 6,
+      "signals": 9
+    },
+    "GPC": {
+      "score": 6,
+      "signals": 9
+    },
+    "GPI": {
+      "score": 5,
+      "signals": 9
+    },
+    "GPRE": {
+      "score": 5,
+      "signals": 9
+    },
+    "GROV": {
+      "score": 3,
+      "signals": 9
+    },
+    "GROVW": {
+      "score": 3,
+      "signals": 9
+    },
+    "GRPN": {
+      "score": 3,
+      "signals": 9
+    },
+    "GTES": {
+      "score": 8,
+      "signals": 9
+    },
+    "GTLS": {
+      "score": 6,
+      "signals": 9
+    },
+    "GTM": {
+      "score": 7,
+      "signals": 9
+    },
+    "GTX": {
+      "score": 9,
+      "signals": 9
+    },
+    "GVA": {
+      "score": 6,
+      "signals": 9
+    },
+    "GWW": {
+      "score": 5,
+      "signals": 9
+    },
+    "HAE": {
+      "score": 6,
+      "signals": 9
+    },
+    "HAIN": {
+      "score": 4,
+      "signals": 9
+    },
+    "HAYW": {
+      "score": 8,
+      "signals": 9
+    },
+    "HBIO": {
+      "score": 4,
+      "signals": 9
+    },
+    "HCWC": {
+      "score": 6,
+      "signals": 9
+    },
+    "HD": {
+      "score": 4,
+      "signals": 9
+    },
+    "HELE": {
+      "score": 4,
+      "signals": 9
+    },
+    "HFFG": {
+      "score": 5,
+      "signals": 9
+    },
+    "HLF": {
+      "score": 6,
+      "signals": 9
+    },
+    "HLIO": {
+      "score": 9,
+      "signals": 9
+    },
+    "HLIT": {
+      "score": 4,
+      "signals": 9
+    },
+    "HLLY": {
+      "score": 7,
+      "signals": 9
+    },
+    "HLX": {
+      "score": 6,
+      "signals": 9
+    },
+    "HNI": {
+      "score": 5,
+      "signals": 9
+    },
+    "HPQ": {
+      "score": 5,
+      "signals": 9
+    },
+    "HQY": {
+      "score": 9,
+      "signals": 9
+    },
+    "HRMY": {
+      "score": 5,
+      "signals": 9
+    },
+    "HSAI": {
+      "score": 6,
+      "signals": 9
+    },
+    "HSIC": {
+      "score": 6,
+      "signals": 9
+    },
+    "HSIGF": {
+      "score": 6,
+      "signals": 9
+    },
+    "HUBB": {
+      "score": 6,
+      "signals": 9
+    },
+    "HUHU": {
+      "score": 3,
+      "signals": 9
+    },
+    "HUN": {
+      "score": 2,
+      "signals": 9
+    },
+    "HWKN": {
+      "score": 4,
+      "signals": 9
+    },
+    "HXL": {
+      "score": 6,
+      "signals": 9
+    },
+    "HY": {
+      "score": 3,
+      "signals": 9
+    },
+    "HYFM": {
+      "score": 3,
+      "signals": 9
+    },
+    "HZO": {
+      "score": 4,
+      "signals": 9
+    },
+    "IAUX": {
+      "score": 5,
+      "signals": 9
+    },
+    "IAUX.WT": {
+      "score": 5,
+      "signals": 9
+    },
+    "IBM": {
+      "score": 7,
+      "signals": 9
+    },
+    "IBP": {
+      "score": 7,
+      "signals": 9
+    },
+    "ICCC": {
+      "score": 7,
+      "signals": 9
+    },
+    "ICCM": {
+      "score": 4,
+      "signals": 9
+    },
+    "ICHR": {
+      "score": 3,
+      "signals": 9
+    },
+    "ICUI": {
+      "score": 6,
+      "signals": 9
+    },
+    "IDXX": {
+      "score": 8,
+      "signals": 9
+    },
+    "IESC": {
+      "score": 6,
+      "signals": 9
+    },
+    "IEX": {
+      "score": 7,
+      "signals": 9
+    },
+    "ILAG": {
+      "score": 1,
+      "signals": 9
+    },
+    "INDV": {
+      "score": 4,
+      "signals": 9
+    },
+    "INFU": {
+      "score": 8,
+      "signals": 9
+    },
+    "INGM": {
+      "score": 6,
+      "signals": 9
+    },
+    "INGR": {
+      "score": 8,
+      "signals": 9
+    },
+    "INNV": {
+      "score": 7,
+      "signals": 9
+    },
+    "INTC": {
+      "score": 6,
+      "signals": 9
+    },
+    "IR": {
+      "score": 5,
+      "signals": 9
+    },
+    "IT": {
+      "score": 6,
+      "signals": 9
+    },
+    "ITGR": {
+      "score": 7,
+      "signals": 9
+    },
+    "ITHUF": {
+      "score": 3,
+      "signals": 9
+    },
+    "ITRI": {
+      "score": 6,
+      "signals": 9
+    },
+    "IVDA": {
+      "score": 5,
+      "signals": 9
+    },
+    "IVDAW": {
+      "score": 5,
+      "signals": 9
+    },
+    "IVFH": {
+      "score": 3,
+      "signals": 9
+    },
+    "JBI": {
+      "score": 6,
+      "signals": 9
+    },
+    "JBL": {
+      "score": 6,
+      "signals": 9
+    },
+    "JELD": {
+      "score": 2,
+      "signals": 9
+    },
+    "JF": {
+      "score": 5,
+      "signals": 9
+    },
+    "JNJ": {
+      "score": 4,
+      "signals": 9
+    },
+    "JUSHF": {
+      "score": 3,
+      "signals": 9
+    },
+    "KC": {
+      "score": 4,
+      "signals": 9
+    },
+    "KCLHF": {
+      "score": 4,
+      "signals": 9
+    },
+    "KCRD": {
+      "score": 3,
+      "signals": 9
+    },
+    "KDP": {
+      "score": 7,
+      "signals": 9
+    },
+    "KE": {
+      "score": 5,
+      "signals": 9
+    },
+    "KEQU": {
+      "score": 5,
+      "signals": 9
+    },
+    "KIDS": {
+      "score": 4,
+      "signals": 9
+    },
+    "KLTR": {
+      "score": 6,
+      "signals": 9
+    },
+    "KMB": {
+      "score": 5,
+      "signals": 9
+    },
+    "KMT": {
+      "score": 6,
+      "signals": 9
+    },
+    "KNF": {
+      "score": 3,
+      "signals": 9
+    },
+    "KO": {
+      "score": 7,
+      "signals": 9
+    },
+    "KODK": {
+      "score": 7,
+      "signals": 9
+    },
+    "KRO": {
+      "score": 4,
+      "signals": 9
+    },
+    "KSCP": {
+      "score": 4,
+      "signals": 9
+    },
+    "KTOS": {
+      "score": 4,
+      "signals": 9
+    },
+    "KWR": {
+      "score": 5,
+      "signals": 9
+    },
+    "LAD": {
+      "score": 3,
+      "signals": 9
+    },
+    "LCII": {
+      "score": 8,
+      "signals": 9
+    },
+    "LCTC": {
+      "score": 2,
+      "signals": 9
+    },
+    "LE": {
+      "score": 7,
+      "signals": 9
+    },
+    "LEA": {
+      "score": 6,
+      "signals": 9
+    },
+    "LECO": {
+      "score": 6,
+      "signals": 9
+    },
+    "LEDS": {
+      "score": 6,
+      "signals": 9
+    },
+    "LEG": {
+      "score": 8,
+      "signals": 9
+    },
+    "LESL": {
+      "score": 3,
+      "signals": 9
+    },
+    "LH": {
+      "score": 8,
+      "signals": 9
+    },
+    "LII": {
+      "score": 5,
+      "signals": 9
+    },
+    "LIVN": {
+      "score": 5,
+      "signals": 9
+    },
+    "LMB": {
+      "score": 5,
+      "signals": 9
+    },
+    "LMT": {
+      "score": 6,
+      "signals": 9
+    },
+    "LNN": {
+      "score": 7,
+      "signals": 9
+    },
+    "LNTH": {
+      "score": 5,
+      "signals": 9
+    },
+    "LOAR": {
+      "score": 5,
+      "signals": 9
+    },
+    "LOBO": {
+      "score": 4,
+      "signals": 9
+    },
+    "LOCL": {
+      "score": 5,
+      "signals": 9
+    },
+    "LOCLW": {
+      "score": 5,
+      "signals": 9
+    },
+    "LOT": {
+      "score": 3,
+      "signals": 9
+    },
+    "LOTWW": {
+      "score": 3,
+      "signals": 9
+    },
+    "LOW": {
+      "score": 6,
+      "signals": 9
+    },
+    "LPRO": {
+      "score": 6,
+      "signals": 9
+    },
+    "LPX": {
+      "score": 5,
+      "signals": 9
+    },
+    "LRN": {
+      "score": 8,
+      "signals": 9
+    },
+    "LTRX": {
+      "score": 5,
+      "signals": 9
+    },
+    "LUNG": {
+      "score": 3,
+      "signals": 9
+    },
+    "LUVU": {
+      "score": 2,
+      "signals": 9
+    },
+    "LW": {
+      "score": 6,
+      "signals": 9
+    },
+    "LXFR": {
+      "score": 5,
+      "signals": 9
+    },
+    "LXU": {
+      "score": 8,
+      "signals": 9
+    },
+    "LYTS": {
+      "score": 6,
+      "signals": 9
+    },
+    "MAS": {
+      "score": 7,
+      "signals": 9
+    },
+    "MAT": {
+      "score": 5,
+      "signals": 9
+    },
+    "MATV": {
+      "score": 3,
+      "signals": 9
+    },
+    "MBC": {
+      "score": 6,
+      "signals": 9
+    },
+    "MBUU": {
+      "score": 9,
+      "signals": 9
+    },
+    "MCHP": {
+      "score": 7,
+      "signals": 9
+    },
+    "MCHPP": {
+      "score": 7,
+      "signals": 9
+    },
+    "MCK": {
+      "score": 5,
+      "signals": 9
+    },
+    "MDLZ": {
+      "score": 5,
+      "signals": 9
+    },
+    "MDXG": {
+      "score": 5,
+      "signals": 9
+    },
+    "MEDS": {
+      "score": 1,
+      "signals": 9
+    },
+    "MEI": {
+      "score": 5,
+      "signals": 9
+    },
+    "MELI": {
+      "score": 5,
+      "signals": 9
+    },
+    "MFI": {
+      "score": 4,
+      "signals": 9
+    },
+    "MG": {
+      "score": 6,
+      "signals": 9
+    },
+    "MGPI": {
+      "score": 4,
+      "signals": 9
+    },
+    "MHK": {
+      "score": 6,
+      "signals": 9
+    },
+    "MIDD": {
+      "score": 5,
+      "signals": 9
+    },
+    "MIR": {
+      "score": 7,
+      "signals": 9
+    },
+    "MKC": {
+      "score": 6,
+      "signals": 9
+    },
+    "MKC.V": {
+      "score": 6,
+      "signals": 9
+    },
+    "MLKN": {
+      "score": 6,
+      "signals": 9
+    },
+    "MLM": {
+      "score": 7,
+      "signals": 9
+    },
+    "MMS": {
+      "score": 7,
+      "signals": 9
+    },
+    "MMSI": {
+      "score": 7,
+      "signals": 9
+    },
+    "MNESP": {
+      "score": 5,
+      "signals": 9
+    },
+    "MNRO": {
+      "score": 7,
+      "signals": 9
+    },
+    "MO": {
+      "score": 7,
+      "signals": 9
+    },
+    "MOBX": {
+      "score": 3,
+      "signals": 9
+    },
+    "MOBXW": {
+      "score": 3,
+      "signals": 9
+    },
+    "MOD": {
+      "score": 5,
+      "signals": 9
+    },
+    "MOG.A": {
+      "score": 6,
+      "signals": 9
+    },
+    "MOG.B": {
+      "score": 6,
+      "signals": 9
+    },
+    "MOS": {
+      "score": 8,
+      "signals": 9
+    },
+    "MRAM": {
+      "score": 3,
+      "signals": 9
+    },
+    "MRDN": {
+      "score": 4,
+      "signals": 9
+    },
+    "MRVI": {
+      "score": 2,
+      "signals": 9
+    },
+    "MRVL": {
+      "score": 7,
+      "signals": 9
+    },
+    "MSA": {
+      "score": 5,
+      "signals": 9
+    },
+    "MSFT": {
+      "score": 6,
+      "signals": 9
+    },
+    "MSI": {
+      "score": 6,
+      "signals": 9
+    },
+    "MSM": {
+      "score": 5,
+      "signals": 9
+    },
+    "MSTR": {
+      "score": 3,
+      "signals": 9
+    },
+    "MTD": {
+      "score": 6,
+      "signals": 9
+    },
+    "MTRN": {
+      "score": 6,
+      "signals": 9
+    },
+    "MTSI": {
+      "score": 6,
+      "signals": 9
+    },
+    "MTW": {
+      "score": 5,
+      "signals": 9
+    },
+    "MTX": {
+      "score": 4,
+      "signals": 9
+    },
+    "MU": {
+      "score": 7,
+      "signals": 9
+    },
+    "MUX": {
+      "score": 6,
+      "signals": 9
+    },
+    "MWA": {
+      "score": 7,
+      "signals": 9
+    },
+    "MX": {
+      "score": 3,
+      "signals": 9
+    },
+    "MXL": {
+      "score": 5,
+      "signals": 9
+    },
+    "MYE": {
+      "score": 6,
+      "signals": 9
+    },
+    "MYGN": {
+      "score": 5,
+      "signals": 9
+    },
+    "MYND": {
+      "score": 2,
+      "signals": 9
+    },
+    "MYRG": {
+      "score": 8,
+      "signals": 9
+    },
+    "MYSZ": {
+      "score": 3,
+      "signals": 9
+    },
+    "NA": {
+      "score": 4,
+      "signals": 9
+    },
+    "NABL": {
+      "score": 3,
+      "signals": 9
+    },
+    "NATH": {
+      "score": 4,
+      "signals": 9
+    },
+    "NDAQ": {
+      "score": 9,
+      "signals": 9
+    },
+    "NESR": {
+      "score": 5,
+      "signals": 9
+    },
+    "NEU": {
+      "score": 5,
+      "signals": 9
+    },
+    "NGVT": {
+      "score": 6,
+      "signals": 9
+    },
+    "NKE": {
+      "score": 5,
+      "signals": 9
+    },
+    "NMHI": {
+      "score": 4,
+      "signals": 9
+    },
+    "NMHIW": {
+      "score": 4,
+      "signals": 9
+    },
+    "NOV": {
+      "score": 5,
+      "signals": 9
+    },
+    "NOVT": {
+      "score": 5,
+      "signals": 9
+    },
+    "NOVTU": {
+      "score": 5,
+      "signals": 9
+    },
+    "NPCE": {
+      "score": 5,
+      "signals": 9
+    },
+    "NPHC": {
+      "score": 4,
+      "signals": 9
+    },
+    "NRDY": {
+      "score": 2,
+      "signals": 9
+    },
+    "NRGV": {
+      "score": 4,
+      "signals": 9
+    },
+    "NSIT": {
+      "score": 6,
+      "signals": 9
+    },
+    "NSP": {
+      "score": 2,
+      "signals": 9
+    },
+    "NTAP": {
+      "score": 8,
+      "signals": 9
+    },
+    "NTWK": {
+      "score": 6,
+      "signals": 9
+    },
+    "NUS": {
+      "score": 6,
+      "signals": 9
+    },
+    "NUTX": {
+      "score": 7,
+      "signals": 9
+    },
+    "NVCR": {
+      "score": 4,
+      "signals": 9
+    },
+    "NVDA": {
+      "score": 4,
+      "signals": 9
+    },
+    "NVST": {
+      "score": 7,
+      "signals": 9
+    },
+    "NVT": {
+      "score": 6,
+      "signals": 9
+    },
+    "NWL": {
+      "score": 4,
+      "signals": 9
+    },
+    "NXPI": {
+      "score": 5,
+      "signals": 9
+    },
+    "OC": {
+      "score": 3,
+      "signals": 9
+    },
+    "OEC": {
+      "score": 3,
+      "signals": 9
+    },
+    "OFIX": {
+      "score": 5,
+      "signals": 9
+    },
+    "OGN": {
+      "score": 5,
+      "signals": 9
+    },
+    "OI": {
+      "score": 7,
+      "signals": 9
+    },
+    "OLLI": {
+      "score": 7,
+      "signals": 9
+    },
+    "OLN": {
+      "score": 4,
+      "signals": 9
+    },
+    "OM": {
+      "score": 6,
+      "signals": 9
+    },
+    "ON": {
+      "score": 4,
+      "signals": 9
+    },
+    "ONC": {
+      "score": 7,
+      "signals": 9
+    },
+    "OPCH": {
+      "score": 5,
+      "signals": 9
+    },
+    "OPK": {
+      "score": 4,
+      "signals": 9
+    },
+    "OPRX": {
+      "score": 8,
+      "signals": 9
+    },
+    "OPTX": {
+      "score": 7,
+      "signals": 9
+    },
+    "OPTXW": {
+      "score": 7,
+      "signals": 9
+    },
+    "ORLY": {
+      "score": 7,
+      "signals": 9
+    },
+    "ORN": {
+      "score": 7,
+      "signals": 9
+    },
+    "OTEX": {
+      "score": 6,
+      "signals": 9
+    },
+    "OWLT": {
+      "score": 4,
+      "signals": 9
+    },
+    "OXM": {
+      "score": 3,
+      "signals": 9
+    },
+    "PACK": {
+      "score": 4,
+      "signals": 9
+    },
+    "PAG": {
+      "score": 6,
+      "signals": 9
+    },
+    "PAHC": {
+      "score": 7,
+      "signals": 9
+    },
+    "PAR": {
+      "score": 3,
+      "signals": 9
+    },
+    "PATK": {
+      "score": 6,
+      "signals": 9
+    },
+    "PAYS": {
+      "score": 7,
+      "signals": 9
+    },
+    "PCYO": {
+      "score": 4,
+      "signals": 9
+    },
+    "PENG": {
+      "score": 6,
+      "signals": 9
+    },
+    "PEP": {
+      "score": 5,
+      "signals": 9
+    },
+    "PESI": {
+      "score": 4,
+      "signals": 9
+    },
+    "PHAT": {
+      "score": 3,
+      "signals": 9
+    },
+    "PHIN": {
+      "score": 7,
+      "signals": 9
+    },
+    "PII": {
+      "score": 3,
+      "signals": 9
+    },
+    "PKG": {
+      "score": 3,
+      "signals": 9
+    },
+    "PLAB": {
+      "score": 5,
+      "signals": 9
+    },
+    "PLBY": {
+      "score": 6,
+      "signals": 9
+    },
+    "PLPC": {
+      "score": 6,
+      "signals": 9
+    },
+    "PM": {
+      "score": 8,
+      "signals": 9
+    },
+    "PMTS": {
+      "score": 4,
+      "signals": 9
+    },
+    "PNR": {
+      "score": 8,
+      "signals": 9
+    },
+    "POCI": {
+      "score": 2,
+      "signals": 9
+    },
+    "PODD": {
+      "score": 7,
+      "signals": 9
+    },
+    "POOL": {
+      "score": 5,
+      "signals": 9
+    },
+    "POST": {
+      "score": 4,
+      "signals": 9
+    },
+    "PPC": {
+      "score": 5,
+      "signals": 9
+    },
+    "PRCH": {
+      "score": 7,
+      "signals": 9
+    },
+    "PRCT": {
+      "score": 3,
+      "signals": 9
+    },
+    "PREM": {
+      "score": 5,
+      "signals": 9
+    },
+    "PRGO": {
+      "score": 4,
+      "signals": 9
+    },
+    "PRGS": {
+      "score": 6,
+      "signals": 9
+    },
+    "PRIM": {
+      "score": 6,
+      "signals": 9
+    },
+    "PRM": {
+      "score": 5,
+      "signals": 9
+    },
+    "PROF": {
+      "score": 3,
+      "signals": 9
+    },
+    "PRPO": {
+      "score": 7,
+      "signals": 9
+    },
+    "PSIG": {
+      "score": 2,
+      "signals": 9
+    },
+    "PSIX": {
+      "score": 6,
+      "signals": 9
+    },
+    "PVH": {
+      "score": 6,
+      "signals": 9
+    },
+    "PWR": {
+      "score": 5,
+      "signals": 9
+    },
+    "QBTS": {
+      "score": 5,
+      "signals": 9
+    },
+    "QGEN": {
+      "score": 8,
+      "signals": 9
+    },
+    "QRVO": {
+      "score": 9,
+      "signals": 9
+    },
+    "QVCAQ": {
+      "score": 4,
+      "signals": 9
+    },
+    "QVCGQ": {
+      "score": 4,
+      "signals": 9
+    },
+    "QVCPQ": {
+      "score": 4,
+      "signals": 9
+    },
+    "QXO": {
+      "score": 3,
+      "signals": 9
+    },
+    "QXO.PB": {
+      "score": 3,
+      "signals": 9
+    },
+    "RAYA": {
+      "score": 3,
+      "signals": 9
+    },
+    "RBBN": {
+      "score": 6,
+      "signals": 9
+    },
+    "RBC": {
+      "score": 6,
+      "signals": 9
+    },
+    "RCEL": {
+      "score": 3,
+      "signals": 9
+    },
+    "RDNW": {
+      "score": 5,
+      "signals": 9
+    },
+    "RDW": {
+      "score": 4,
+      "signals": 9
+    },
+    "REYN": {
+      "score": 5,
+      "signals": 9
+    },
+    "REZI": {
+      "score": 3,
+      "signals": 9
+    },
+    "RGLD": {
+      "score": 4,
+      "signals": 9
+    },
+    "RIVN": {
+      "score": 4,
+      "signals": 9
+    },
+    "RKLB": {
+      "score": 5,
+      "signals": 9
+    },
+    "RL": {
+      "score": 8,
+      "signals": 9
+    },
+    "RNG": {
+      "score": 8,
+      "signals": 9
+    },
+    "ROAD": {
+      "score": 6,
+      "signals": 9
+    },
+    "ROK": {
+      "score": 8,
+      "signals": 9
+    },
+    "ROP": {
+      "score": 5,
+      "signals": 9
+    },
+    "RPAY": {
+      "score": 5,
+      "signals": 9
+    },
+    "RPM": {
+      "score": 5,
+      "signals": 9
+    },
+    "RUSHA": {
+      "score": 6,
+      "signals": 9
+    },
+    "RUSHB": {
+      "score": 6,
+      "signals": 9
+    },
+    "RXT": {
+      "score": 4,
+      "signals": 9
+    },
+    "RYAM": {
+      "score": 3,
+      "signals": 9
+    },
+    "RYM": {
+      "score": 4,
+      "signals": 9
+    },
+    "SAH": {
+      "score": 6,
+      "signals": 9
+    },
+    "SANM": {
+      "score": 5,
+      "signals": 9
+    },
+    "SBAC": {
+      "score": 7,
+      "signals": 9
+    },
+    "SBH": {
+      "score": 8,
+      "signals": 9
+    },
+    "SBIG": {
+      "score": 2,
+      "signals": 9
+    },
+    "SBIGW": {
+      "score": 2,
+      "signals": 9
+    },
+    "SCI": {
+      "score": 7,
+      "signals": 9
+    },
+    "SCL": {
+      "score": 6,
+      "signals": 9
+    },
+    "SDSYA": {
+      "score": 2,
+      "signals": 9
+    },
+    "SGC": {
+      "score": 5,
+      "signals": 9
+    },
+    "SGHT": {
+      "score": 5,
+      "signals": 9
+    },
+    "SGI": {
+      "score": 5,
+      "signals": 9
+    },
+    "SGU": {
+      "score": 6,
+      "signals": 9
+    },
+    "SHC": {
+      "score": 7,
+      "signals": 9
+    },
+    "SHIM": {
+      "score": 4,
+      "signals": 9
+    },
+    "SHOO": {
+      "score": 5,
+      "signals": 9
+    },
+    "SHW": {
+      "score": 6,
+      "signals": 9
+    },
+    "SIBN": {
+      "score": 6,
+      "signals": 9
+    },
+    "SIRI": {
+      "score": 6,
+      "signals": 9
+    },
+    "SITE": {
+      "score": 8,
+      "signals": 9
+    },
+    "SKY": {
+      "score": 7,
+      "signals": 9
+    },
+    "SKYT": {
+      "score": 3,
+      "signals": 9
+    },
+    "SLGN": {
+      "score": 7,
+      "signals": 9
+    },
+    "SLND": {
+      "score": 3,
+      "signals": 9
+    },
+    "SLND.WT": {
+      "score": 3,
+      "signals": 9
+    },
+    "SLNH": {
+      "score": 4,
+      "signals": 9
+    },
+    "SLNHP": {
+      "score": 4,
+      "signals": 9
+    },
+    "SMG": {
+      "score": 7,
+      "signals": 9
+    },
+    "SMP": {
+      "score": 7,
+      "signals": 9
+    },
+    "SMPL": {
+      "score": 5,
+      "signals": 9
+    },
+    "SMTC": {
+      "score": 7,
+      "signals": 9
+    },
+    "SMTI": {
+      "score": 5,
+      "signals": 9
+    },
+    "SN": {
+      "score": 6,
+      "signals": 9
+    },
+    "SND": {
+      "score": 6,
+      "signals": 9
+    },
+    "SNPS": {
+      "score": 3,
+      "signals": 9
+    },
+    "SNRG": {
+      "score": 2,
+      "signals": 9
+    },
+    "SNX": {
+      "score": 7,
+      "signals": 9
+    },
+    "SNYR": {
+      "score": 2,
+      "signals": 9
+    },
+    "SOLV": {
+      "score": 5,
+      "signals": 9
+    },
+    "SON": {
+      "score": 6,
+      "signals": 9
+    },
+    "SORA": {
+      "score": 4,
+      "signals": 9
+    },
+    "SPB": {
+      "score": 5,
+      "signals": 9
+    },
+    "SPCB": {
+      "score": 5,
+      "signals": 9
+    },
+    "SPWH": {
+      "score": 4,
+      "signals": 9
+    },
+    "SQLLW": {
+      "score": 4,
+      "signals": 9
+    },
+    "SSNC": {
+      "score": 5,
+      "signals": 9
+    },
+    "STE": {
+      "score": 9,
+      "signals": 9
+    },
+    "STG": {
+      "score": 8,
+      "signals": 9
+    },
+    "STIM": {
+      "score": 4,
+      "signals": 9
+    },
+    "STLD": {
+      "score": 5,
+      "signals": 9
+    },
+    "STM": {
+      "score": 6,
+      "signals": 9
+    },
+    "STMEF": {
+      "score": 6,
+      "signals": 9
+    },
+    "STRC": {
+      "score": 3,
+      "signals": 9
+    },
+    "STRD": {
+      "score": 3,
+      "signals": 9
+    },
+    "STRF": {
+      "score": 3,
+      "signals": 9
+    },
+    "STRK": {
+      "score": 3,
+      "signals": 9
+    },
+    "STRL": {
+      "score": 6,
+      "signals": 9
+    },
+    "SW": {
+      "score": 5,
+      "signals": 9
+    },
+    "SWIM": {
+      "score": 8,
+      "signals": 9
+    },
+    "SXTP": {
+      "score": 2,
+      "signals": 9
+    },
+    "SXTPW": {
+      "score": 2,
+      "signals": 9
+    },
+    "SYK": {
+      "score": 5,
+      "signals": 9
+    },
+    "TATT": {
+      "score": 6,
+      "signals": 9
+    },
+    "TBCH": {
+      "score": 6,
+      "signals": 9
+    },
+    "TCOM": {
+      "score": 6,
+      "signals": 9
+    },
+    "TDC": {
+      "score": 7,
+      "signals": 9
+    },
+    "TDG": {
+      "score": 6,
+      "signals": 9
+    },
+    "TDTH": {
+      "score": 3,
+      "signals": 9
+    },
+    "TE": {
+      "score": 6,
+      "signals": 9
+    },
+    "TEAM": {
+      "score": 6,
+      "signals": 9
+    },
+    "TECH": {
+      "score": 7,
+      "signals": 9
+    },
+    "TEL": {
+      "score": 6,
+      "signals": 9
+    },
+    "TELA": {
+      "score": 3,
+      "signals": 9
+    },
+    "TEX": {
+      "score": 6,
+      "signals": 9
+    },
+    "TGLS": {
+      "score": 4,
+      "signals": 9
+    },
+    "TH": {
+      "score": 4,
+      "signals": 9
+    },
+    "THO": {
+      "score": 6,
+      "signals": 9
+    },
+    "THRY": {
+      "score": 7,
+      "signals": 9
+    },
+    "TILE": {
+      "score": 7,
+      "signals": 9
+    },
+    "TISI": {
+      "score": 2,
+      "signals": 9
+    },
+    "TITN": {
+      "score": 4,
+      "signals": 9
+    },
+    "TLSI": {
+      "score": 3,
+      "signals": 9
+    },
+    "TLSIW": {
+      "score": 3,
+      "signals": 9
+    },
+    "TMCI": {
+      "score": 2,
+      "signals": 9
+    },
+    "TNC": {
+      "score": 5,
+      "signals": 9
+    },
+    "TNDM": {
+      "score": 3,
+      "signals": 9
+    },
+    "TPC": {
+      "score": 7,
+      "signals": 9
+    },
+    "TPICQ": {
+      "score": 3,
+      "signals": 9
+    },
+    "TREE": {
+      "score": 5,
+      "signals": 9
+    },
+    "TRMB": {
+      "score": 4,
+      "signals": 9
+    },
+    "TRNS": {
+      "score": 4,
+      "signals": 9
+    },
+    "TROX": {
+      "score": 2,
+      "signals": 9
+    },
+    "TRPCF": {
+      "score": 6,
+      "signals": 9
+    },
+    "TRS": {
+      "score": 4,
+      "signals": 9
+    },
+    "TSCO": {
+      "score": 6,
+      "signals": 9
+    },
+    "TSEM": {
+      "score": 6,
+      "signals": 9
+    },
+    "TSEOQ": {
+      "score": 1,
+      "signals": 9
+    },
+    "TSN": {
+      "score": 5,
+      "signals": 9
+    },
+    "TSQ": {
+      "score": 4,
+      "signals": 9
+    },
+    "TSSI": {
+      "score": 6,
+      "signals": 9
+    },
+    "TTC": {
+      "score": 5,
+      "signals": 9
+    },
+    "TTMI": {
+      "score": 7,
+      "signals": 9
+    },
+    "TWI": {
+      "score": 4,
+      "signals": 9
+    },
+    "TWIN": {
+      "score": 4,
+      "signals": 9
+    },
+    "TXN": {
+      "score": 7,
+      "signals": 9
+    },
+    "TYGO": {
+      "score": 6,
+      "signals": 9
+    },
+    "UA": {
+      "score": 4,
+      "signals": 9
+    },
+    "UAA": {
+      "score": 4,
+      "signals": 9
+    },
+    "UAMY": {
+      "score": 4,
+      "signals": 9
+    },
+    "UFPT": {
+      "score": 5,
+      "signals": 9
+    },
+    "UIS": {
+      "score": 2,
+      "signals": 9
+    },
+    "ULBI": {
+      "score": 5,
+      "signals": 9
+    },
+    "UPLD": {
+      "score": 4,
+      "signals": 9
+    },
+    "UPWK": {
+      "score": 6,
+      "signals": 9
+    },
+    "URI": {
+      "score": 5,
+      "signals": 9
+    },
+    "USFD": {
+      "score": 7,
+      "signals": 9
+    },
+    "USIO": {
+      "score": 2,
+      "signals": 9
+    },
+    "USPH": {
+      "score": 6,
+      "signals": 9
+    },
+    "UTZ": {
+      "score": 5,
+      "signals": 9
+    },
+    "VATE": {
+      "score": 4,
+      "signals": 9
+    },
+    "VC": {
+      "score": 7,
+      "signals": 9
+    },
+    "VHI": {
+      "score": 4,
+      "signals": 9
+    },
+    "VIRC": {
+      "score": 3,
+      "signals": 9
+    },
+    "VISN": {
+      "score": 7,
+      "signals": 9
+    },
+    "VLTO": {
+      "score": 5,
+      "signals": 9
+    },
+    "VMC": {
+      "score": 9,
+      "signals": 9
+    },
+    "VMD": {
+      "score": 5,
+      "signals": 9
+    },
+    "VMI": {
+      "score": 7,
+      "signals": 9
+    },
+    "VNCE": {
+      "score": 6,
+      "signals": 9
+    },
+    "VPG": {
+      "score": 7,
+      "signals": 9
+    },
+    "VREX": {
+      "score": 5,
+      "signals": 9
+    },
+    "VRNO": {
+      "score": 5,
+      "signals": 9
+    },
+    "VSEE": {
+      "score": 4,
+      "signals": 9
+    },
+    "VSEEW": {
+      "score": 4,
+      "signals": 9
+    },
+    "VSH": {
+      "score": 5,
+      "signals": 9
+    },
+    "VSXY": {
+      "score": 6,
+      "signals": 9
+    },
+    "VVOS": {
+      "score": 3,
+      "signals": 9
+    },
+    "VVV": {
+      "score": 6,
+      "signals": 9
+    },
+    "W": {
+      "score": 6,
+      "signals": 9
+    },
+    "WAB": {
+      "score": 6,
+      "signals": 9
+    },
+    "WALD": {
+      "score": 3,
+      "signals": 9
+    },
+    "WALDW": {
+      "score": 3,
+      "signals": 9
+    },
+    "WDFC": {
+      "score": 8,
+      "signals": 9
+    },
+    "WEST": {
+      "score": 2,
+      "signals": 9
+    },
+    "WFF": {
+      "score": 4,
+      "signals": 9
+    },
+    "WGO": {
+      "score": 7,
+      "signals": 9
+    },
+    "WGRX": {
+      "score": 1,
+      "signals": 9
+    },
+    "WGS": {
+      "score": 6,
+      "signals": 9
+    },
+    "WGSWW": {
+      "score": 6,
+      "signals": 9
+    },
+    "WHR": {
+      "score": 5,
+      "signals": 9
+    },
+    "WHR.PA": {
+      "score": 5,
+      "signals": 9
+    },
+    "WKC": {
+      "score": 5,
+      "signals": 9
+    },
+    "WLDN": {
+      "score": 7,
+      "signals": 9
+    },
+    "WLK": {
+      "score": 3,
+      "signals": 9
+    },
+    "WMS": {
+      "score": 6,
+      "signals": 9
+    },
+    "WNC": {
+      "score": 4,
+      "signals": 9
+    },
+    "WOOF": {
+      "score": 7,
+      "signals": 9
+    },
+    "WSC": {
+      "score": 3,
+      "signals": 9
+    },
+    "WSO": {
+      "score": 4,
+      "signals": 9
+    },
+    "WSO.B": {
+      "score": 4,
+      "signals": 9
+    },
+    "WST": {
+      "score": 8,
+      "signals": 9
+    },
+    "WTS": {
+      "score": 7,
+      "signals": 9
+    },
+    "WULF": {
+      "score": 1,
+      "signals": 9
+    },
+    "WWW": {
+      "score": 8,
+      "signals": 9
+    },
+    "WY": {
+      "score": 4,
+      "signals": 9
+    },
+    "XGN": {
+      "score": 4,
+      "signals": 9
+    },
+    "XNET": {
+      "score": 5,
+      "signals": 9
+    },
+    "XPON": {
+      "score": 5,
+      "signals": 9
+    },
+    "XRAY": {
+      "score": 6,
+      "signals": 9
+    },
+    "XTIA": {
+      "score": 4,
+      "signals": 9
+    },
+    "XTNT": {
+      "score": 8,
+      "signals": 9
+    },
+    "XYL": {
+      "score": 7,
+      "signals": 9
+    },
+    "YETI": {
+      "score": 6,
+      "signals": 9
+    },
+    "YEXT": {
+      "score": 5,
+      "signals": 9
+    },
+    "ZBRA": {
+      "score": 5,
+      "signals": 9
+    },
+    "ZIP": {
+      "score": 4,
+      "signals": 9
+    },
+    "ZWS": {
+      "score": 8,
+      "signals": 9
+    }
+  }
+}

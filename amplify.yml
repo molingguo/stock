@@ -8,6 +8,7 @@ frontend:
         - npm ci
     build:
       commands:
+        - npm run refresh:scores
         - npm run build:amplify
 
   artifacts:
