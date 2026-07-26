@@ -191,7 +191,7 @@
 .stock-card__quote > strong { font-family: Georgia, 'Times New Roman', serif; font-size: 21px; }
 .stock-card__quote > div { display: flex; align-items: center; gap: 7px; }
 .stock-card__quote .zacks-rank { min-width: 0; }
-.stock-card dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; margin: 0 0 0 32px; padding-top: 12px; border-top: 1px dashed #e1e7e3; }
+.stock-card dl { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 0 32px; padding-top: 12px; border-top: 1px dashed #e1e7e3; }
 .stock-card dl div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .stock-card dt { color: #8a9691; font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; }
 .stock-card dd { margin: 0; font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

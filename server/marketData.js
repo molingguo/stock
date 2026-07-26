@@ -1,7 +1,6 @@
 const { parseSpyHoldings } = require('./spyHoldings');
 const { createZacksRatingsService } = require('./zacksRatings');
 const { createZacksBestStocksService } = require('./zacksBestStocks');
-const { createMarketPerformanceService } = require('./marketPerformance');
 const { POPULAR_ETFS } = require('./popularEtfs');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
@@ -128,7 +127,6 @@ function createMarketDataService({
   staleTtlMs = cacheDuration(process.env.MARKET_STALE_MINUTES, DEFAULT_STALE_TTL_MS),
   ratingsService,
   bestStocksService,
-  performanceService,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
   if (!['public', 'fmp'].includes(provider)) {
@@ -141,7 +139,6 @@ function createMarketDataService({
   const resourceInFlight = new Map();
   const zacksRatings = ratingsService || createZacksRatingsService({ fetchImpl, now });
   const zacksBestStocks = bestStocksService || createZacksBestStocksService({ fetchImpl, now });
-  const marketPerformance = performanceService || createMarketPerformanceService({ fetchImpl, now });
 
   async function fetchWithTimeout(url, options = {}) {
     return fetchImpl(url, { ...options, signal: AbortSignal.timeout(12_000) });
@@ -326,15 +323,6 @@ function createMarketDataService({
   function buildResponse(universe, entry, cacheStatus) {
     const config = UNIVERSES[universe];
     const stocks = config.limit ? entry.stocks.slice(0, config.limit) : entry.stocks;
-    const sources = universe === 'zacksBest'
-      ? ['Zacks 7 Best Stocks report', 'Zacks quote feed']
-      : universe === 'popularEtfs'
-        ? ['Zacks']
-        : provider === 'fmp'
-          ? ['Financial Modeling Prep', 'Zacks']
-          : ['Nasdaq', 'State Street SPY holdings', 'Zacks'];
-    if (!['unconfigured', 'unavailable'].includes(entry.performanceCacheStatus)) sources.push('Massive');
-
     return {
       universe,
       label: config.label,
@@ -343,8 +331,6 @@ function createMarketDataService({
       refreshAfter: new Date(entry.fetchedAt + cacheTtlMs).toISOString(),
       cacheStatus,
       ratingsCacheStatus: entry.ratingsCacheStatus,
-      performanceCacheStatus: entry.performanceCacheStatus,
-      performanceAsOfDates: entry.performanceAsOfDates,
       ...(entry.reportDate ? {
         reportDate: entry.reportDate,
         reportUrl: entry.reportUrl,
@@ -352,7 +338,13 @@ function createMarketDataService({
         reportCacheStatus: entry.reportCacheStatus,
       } : {}),
       zacksCoverage: stocks.filter((stock) => stock.zacksRank !== null).length,
-      sources,
+      sources: universe === 'zacksBest'
+        ? ['Zacks 7 Best Stocks report', 'Zacks quote feed']
+        : universe === 'popularEtfs'
+        ? ['Zacks']
+        : provider === 'fmp'
+          ? ['Financial Modeling Prep', 'Zacks']
+          : ['Nasdaq', 'State Street SPY holdings', 'Zacks'],
       stocks,
     };
   }
@@ -380,22 +372,6 @@ function createMarketDataService({
     };
   }
 
-  async function enrichWithPerformance(stocks) {
-    const result = await marketPerformance.getPerformance(stocks);
-    return {
-      performanceCacheStatus: result.cacheStatus,
-      performanceAsOfDates: result.dates,
-      stocks: stocks.map((stock) => ({
-        ...stock,
-        ...(result.changes.get(normalizeSymbol(stock.symbol)) || {
-          change7Day: null,
-          change30Day: null,
-          change1Year: null,
-        }),
-      })),
-    };
-  }
-
   async function refresh(sourceKey) {
     if (inFlight.has(sourceKey)) return inFlight.get(sourceKey);
     const loader = provider === 'fmp' ? loadFmpUniverse : loadPublicUniverse;
@@ -404,20 +380,12 @@ function createMarketDataService({
       : loader(sourceKey).then((stocks) => ({ stocks }));
     const pending = load
       .then(async ({ stocks, ...metadata }) => ({ ...await enrichWithZacks(stocks), ...metadata }))
-      .then(async ({ stocks, ...metadata }) => ({ ...await enrichWithPerformance(stocks), ...metadata }))
-      .then(({ stocks, ratingsCacheStatus, performanceCacheStatus, performanceAsOfDates, ...metadata }) => {
+      .then(({ stocks, ratingsCacheStatus, ...metadata }) => {
         const normalizedStocks = sourceKey === 'popularEtfs'
           ? stocks.filter((stock) => stock.price !== null)
             .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0) || (b.volume || 0) - (a.volume || 0))
           : stocks;
-        const entry = {
-          stocks: normalizedStocks,
-          ratingsCacheStatus,
-          performanceCacheStatus,
-          performanceAsOfDates,
-          fetchedAt: now(),
-          ...metadata,
-        };
+        const entry = { stocks: normalizedStocks, ratingsCacheStatus, fetchedAt: now(), ...metadata };
         cache.set(sourceKey, entry);
         return entry;
       })
