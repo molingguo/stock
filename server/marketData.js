@@ -1,5 +1,6 @@
 const { parseSpyHoldings } = require('./spyHoldings');
 const { createZacksRatingsService } = require('./zacksRatings');
+const { createZacksBestStocksService } = require('./zacksBestStocks');
 const { POPULAR_ETFS } = require('./popularEtfs');
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
@@ -14,6 +15,7 @@ const UNIVERSES = {
   sp500: { label: 'S&P 500', sourceKey: 'sp500' },
   popularEtfs: { label: 'Popular ETFs', sourceKey: 'popularEtfs' },
   extendedMarket: { label: 'U.S. Extended Market', sourceKey: 'extendedMarket' },
+  zacksBest: { label: 'Zacks 7 Best Stocks', sourceKey: 'zacksBest' },
 };
 
 function cacheDuration(environmentValue, fallback) {
@@ -93,6 +95,27 @@ function createPopularEtfRows() {
   }));
 }
 
+function createSymbolRows(symbols) {
+  return symbols.map((symbol) => ({
+    symbol,
+    name: symbol,
+    sector: 'Zacks weekly picks',
+    industry: '',
+    exchange: '',
+    price: null,
+    change: null,
+    changePercentage: null,
+    marketCap: null,
+    volume: null,
+    averageVolume: null,
+    dayLow: null,
+    dayHigh: null,
+    yearLow: null,
+    yearHigh: null,
+    pe: null,
+  }));
+}
+
 function createMarketDataService({
   provider = process.env.MARKET_DATA_PROVIDER || 'public',
   apiKey = process.env.FMP_API_KEY,
@@ -102,6 +125,7 @@ function createMarketDataService({
   cacheTtlMs = cacheDuration(process.env.MARKET_CACHE_MINUTES, DEFAULT_CACHE_TTL_MS),
   staleTtlMs = cacheDuration(process.env.MARKET_STALE_MINUTES, DEFAULT_STALE_TTL_MS),
   ratingsService,
+  bestStocksService,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
   if (!['public', 'fmp'].includes(provider)) {
@@ -113,6 +137,7 @@ function createMarketDataService({
   const resourceCache = new Map();
   const resourceInFlight = new Map();
   const zacksRatings = ratingsService || createZacksRatingsService({ fetchImpl, now });
+  const zacksBestStocks = bestStocksService || createZacksBestStocksService({ fetchImpl, now });
 
   async function fetchWithTimeout(url, options = {}) {
     return fetchImpl(url, { ...options, signal: AbortSignal.timeout(12_000) });
@@ -280,6 +305,17 @@ function createMarketDataService({
     return stocks;
   }
 
+  async function loadZacksBestUniverse() {
+    const report = await zacksBestStocks.getReport();
+    return {
+      stocks: createSymbolRows(report.symbols),
+      reportDate: report.reportDate,
+      reportUrl: report.reportUrl,
+      resolvedReportUrl: report.resolvedReportUrl,
+      reportCacheStatus: report.cacheStatus,
+    };
+  }
+
   function buildResponse(universe, entry, cacheStatus) {
     const config = UNIVERSES[universe];
     const stocks = config.limit ? entry.stocks.slice(0, config.limit) : entry.stocks;
@@ -291,8 +327,16 @@ function createMarketDataService({
       refreshAfter: new Date(entry.fetchedAt + cacheTtlMs).toISOString(),
       cacheStatus,
       ratingsCacheStatus: entry.ratingsCacheStatus,
+      ...(entry.reportDate ? {
+        reportDate: entry.reportDate,
+        reportUrl: entry.reportUrl,
+        resolvedReportUrl: entry.resolvedReportUrl,
+        reportCacheStatus: entry.reportCacheStatus,
+      } : {}),
       zacksCoverage: stocks.filter((stock) => stock.zacksRank !== null).length,
-      sources: universe === 'popularEtfs'
+      sources: universe === 'zacksBest'
+        ? ['Zacks 7 Best Stocks report', 'Zacks quote feed']
+        : universe === 'popularEtfs'
         ? ['Zacks']
         : provider === 'fmp'
           ? ['Financial Modeling Prep', 'Zacks']
@@ -327,14 +371,17 @@ function createMarketDataService({
   async function refresh(sourceKey) {
     if (inFlight.has(sourceKey)) return inFlight.get(sourceKey);
     const loader = provider === 'fmp' ? loadFmpUniverse : loadPublicUniverse;
-    const pending = loader(sourceKey)
-      .then(enrichWithZacks)
-      .then(({ stocks, ratingsCacheStatus }) => {
+    const load = sourceKey === 'zacksBest'
+      ? loadZacksBestUniverse()
+      : loader(sourceKey).then((stocks) => ({ stocks }));
+    const pending = load
+      .then(async ({ stocks, ...metadata }) => ({ ...await enrichWithZacks(stocks), ...metadata }))
+      .then(({ stocks, ratingsCacheStatus, ...metadata }) => {
         const normalizedStocks = sourceKey === 'popularEtfs'
           ? stocks.filter((stock) => stock.price !== null)
             .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0) || (b.volume || 0) - (a.volume || 0))
           : stocks;
-        const entry = { stocks: normalizedStocks, ratingsCacheStatus, fetchedAt: now() };
+        const entry = { stocks: normalizedStocks, ratingsCacheStatus, fetchedAt: now(), ...metadata };
         cache.set(sourceKey, entry);
         return entry;
       })

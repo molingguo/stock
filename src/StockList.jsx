@@ -12,6 +12,7 @@ const universeOptions = [
   { value: 'sp500', label: 'S&P 500', description: 'Index constituents' },
   { value: 'popularEtfs', label: 'Popular ETFs', description: 'By current fund assets' },
   { value: 'extendedMarket', label: 'Extended Market', description: 'Top 1,000 beyond S&P 500' },
+  { value: 'zacksBest', label: '7 Best Stocks', description: 'Weekly 30-day picks' },
 ];
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -49,6 +50,19 @@ function formatUpdatedAt(value) {
     month: 'short',
     day: 'numeric',
   }).format(new Date(value))}`;
+}
+
+function formatReportDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return '';
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
 }
 
 async function fetchUniverse(universe, force = false) {
@@ -194,6 +208,7 @@ function StockList() {
   const [refreshVersion, setRefreshVersion] = React.useState(0);
   const isMobile = useMobileLayout();
   const isEtfUniverse = universe === 'popularEtfs';
+  const isBestStocksUniverse = universe === 'zacksBest';
 
   React.useEffect(() => {
     let active = true;
@@ -314,7 +329,7 @@ function StockList() {
         <div className="hero__copy">
           <span className="eyebrow">U.S. EQUITY EXPLORER</span>
           <h1>See the market.<br /><em>Find the signal.</em></h1>
-          <p>Explore leading U.S. stocks and popular ETFs with current prices, rankings, and research signals in one focused view.</p>
+          <p>Explore leading U.S. stocks, popular ETFs, and Zacks’ weekly picks with current prices, rankings, and research signals in one focused view.</p>
         </div>
         <div className="universe-picker" aria-label="Market universe">
           {universeOptions.map((option) => (
@@ -332,7 +347,7 @@ function StockList() {
       </section>
 
       <section className="stats-grid" aria-label="Market summary">
-        <StatCard eyebrow={isEtfUniverse ? 'Funds tracked' : 'Companies tracked'} value={loading && !data ? '—' : numberFormatter.format(stocks.length)} detail={data?.label || 'Selected universe'} />
+        <StatCard eyebrow={isBestStocksUniverse ? 'Picks tracked' : isEtfUniverse ? 'Funds tracked' : 'Companies tracked'} value={loading && !data ? '—' : numberFormatter.format(stocks.length)} detail={data?.label || 'Selected universe'} />
         <StatCard eyebrow="Zacks buy signals" value={stocks.length ? numberFormatter.format(stats.strongBuys + stats.buys) : '—'} detail={`${stats.strongBuys} Strong Buy · ${stats.buys} Buy`} tone="positive" />
         <StatCard eyebrow="Median move" value={formatPercent(stats.median)} detail="Across available quotes" tone={stats.median >= 0 ? 'positive' : 'negative'} />
         <StatCard eyebrow={isEtfUniverse ? 'Combined fund assets' : 'Combined market cap'} value={formatCompactCurrency(stats.marketCap || null)} detail={isEtfUniverse ? 'Across available funds' : 'Current company values'} />
@@ -341,9 +356,17 @@ function StockList() {
       <section className="market-panel">
         <div className="panel-heading">
           <div>
-            <span className="eyebrow">MARKET DIRECTORY</span>
+            <span className="eyebrow">{isBestStocksUniverse ? 'WEEKLY ZACKS REPORT' : 'MARKET DIRECTORY'}</span>
             <h2>{data?.label || universeOptions.find((option) => option.value === universe)?.label}</h2>
-            <p>{formatUpdatedAt(data?.asOf)} · {data?.cacheStatus === 'stale' ? 'Showing cached data' : 'Provider cache active'} · {numberFormatter.format(data?.zacksCoverage || 0)} Zacks rated</p>
+            <p className="panel-metadata">
+              {isBestStocksUniverse && data?.reportDate && <span className="report-date">Report updated {formatReportDate(data.reportDate)}</span>}
+              <span>{formatUpdatedAt(data?.asOf)}</span>
+              <span>{data?.cacheStatus === 'stale' ? 'Showing cached data' : data?.reportCacheStatus === 'fallback' ? 'Verified report snapshot' : 'Provider cache active'}</span>
+              <span>{numberFormatter.format(data?.zacksCoverage || 0)} Zacks rated</span>
+              {isBestStocksUniverse && (data?.resolvedReportUrl || data?.reportUrl) && (
+                <a href={data.resolvedReportUrl || data.reportUrl} target="_blank" rel="noreferrer">View source report</a>
+              )}
+            </p>
           </div>
           <button className="refresh-button" type="button" onClick={() => setRefreshVersion((version) => version + 1)} disabled={loading}>
             <RefreshIcon spinning={loading} />

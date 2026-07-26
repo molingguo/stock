@@ -235,6 +235,41 @@ test('loads popular ETFs from one quote batch and orders them by live fund asset
   assert.equal(requests.length, 1);
 });
 
+test('loads the weekly Zacks report picks with report-date metadata', async () => {
+  const fetchImpl = async (url) => {
+    assert.equal(url.hostname, 'quote-feed.zacks.com');
+    const requestedSymbols = url.searchParams.get('t').split(',');
+    return jsonResponse(Object.fromEntries(requestedSymbols.map((symbol, index) => [
+      symbol,
+      {
+        name: `Company ${symbol}`,
+        last: String(100 + index),
+        zacks_rank: '1',
+        zacks_rank_text: 'Strong Buy',
+      },
+    ])));
+  };
+  const bestStocksService = {
+    getReport: async () => ({
+      symbols: ['C', 'EXPD', 'KRO', 'MTZ', 'MU', 'TSM', 'URBN'],
+      reportDate: '2026-07-24',
+      reportUrl: 'https://www.zacks.com/pfp/report/example',
+      resolvedReportUrl: 'https://www.zacks.com/example?edition=20260724abc',
+      cacheStatus: 'fresh',
+    }),
+  };
+  const service = createMarketDataService({ fetchImpl, bestStocksService });
+
+  const result = await service.getStocks('zacksBest');
+
+  assert.equal(result.count, 7);
+  assert.deepEqual(result.stocks.map((stock) => stock.symbol), ['C', 'EXPD', 'KRO', 'MTZ', 'MU', 'TSM', 'URBN']);
+  assert.equal(result.zacksCoverage, 7);
+  assert.equal(result.reportDate, '2026-07-24');
+  assert.equal(result.reportCacheStatus, 'fresh');
+  assert.match(result.resolvedReportUrl, /edition=20260724/);
+});
+
 test('serves stale data when a refresh fails', async () => {
   let currentTime = 0;
   let shouldFail = false;
