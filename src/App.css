@@ -150,7 +150,7 @@
 .sector-field select { padding: 0 34px 0 14px; }
 .result-count { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
 
-.desktop-grid { height: 690px; }
+.desktop-grid { width: 100%; }
 .MuiDataGrid-root { color: var(--ink) !important; font-family: inherit !important; }
 .MuiDataGrid-columnHeaders { background: #fff !important; border-bottom: 1px solid var(--line) !important; }
 .MuiDataGrid-columnHeaderTitle { color: #78857f; font-size: 10px; font-weight: 800 !important; letter-spacing: 0.8px; text-transform: uppercase; }

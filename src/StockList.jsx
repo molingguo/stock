@@ -427,10 +427,11 @@ function StockList() {
                     rows={filteredStocks}
                     columns={columns}
                     getRowId={(row) => row.symbol}
+                    autoHeight
                     disableRowSelectionOnClick
                     rowHeight={68}
                     columnHeaderHeight={52}
-                    initialState={{ pagination: { paginationModel: { pageSize: 25, page: 0 } } }}
+                    initialState={{ pagination: { paginationModel: { pageSize: 100, page: 0 } } }}
                     pageSizeOptions={[10, 25, 50, 100]}
                     pagination
                     sx={{ border: 0 }}
