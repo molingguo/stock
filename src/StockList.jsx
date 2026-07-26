@@ -635,7 +635,7 @@ function StockList() {
     {
       field: 'rank',
       headerName: '#',
-      width: 64,
+      width: 60,
       type: 'number',
       sortable: false,
       valueGetter: (_value, row) => stockRank(row, stocks),
@@ -643,7 +643,7 @@ function StockList() {
     {
       field: 'symbol',
       headerName: isEtfUniverse ? 'Fund' : 'Company',
-      minWidth: 220,
+      minWidth: 180,
       flex: 1.2,
       cellClassName: 'align-center-cell',
       renderCell: ({ row }) => (
@@ -658,11 +658,11 @@ function StockList() {
         </button>
       ),
     },
-    { field: 'price', headerName: 'Price', width: 118, type: 'number', valueFormatter: formatCurrency },
+    { field: 'price', headerName: 'Price', width: 100, type: 'number', valueFormatter: formatCurrency },
     {
       field: 'changePercentage',
       headerName: 'Day change',
-      width: 132,
+      width: 105,
       type: 'number',
       cellClassName: 'align-center-cell',
       renderCell: ({ value }) => <ChangeValue value={value} />,
