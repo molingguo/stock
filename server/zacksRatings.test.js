@@ -28,7 +28,7 @@ test('serves stale Zacks ranks when a refresh is rate limited', async () => {
           zacks_rank: '1',
           zacks_rank_text: 'Strong Buy',
           pe_f1: '31.2',
-          source: { sungard: { market_cap: '3000000000000' } },
+          source: { sungard: { market_cap: '3000000000000', yrlow: '164.08', yrhigh: '237.49' } },
         },
       }),
   });
@@ -47,6 +47,8 @@ test('serves stale Zacks ranks when a refresh is rate limited', async () => {
     marketCap: 3000000000000,
     volume: 50000000,
     pe: 31.2,
+    yearLow: 164.08,
+    yearHigh: 237.49,
   });
   assert.deepEqual(fallback.ratings.get('AAPL'), { rank: 1, text: 'Strong Buy' });
   assert.equal(fallback.cacheStatus, 'stale');

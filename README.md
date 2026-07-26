@@ -10,6 +10,8 @@ The Popular ETFs view uses a curated, diversified set of widely followed U.S.-li
 
 The U.S. Extended Market view ranks U.S. stocks by market cap, takes the top 1,000, and removes every current S&P 500 constituent so the two stock universes do not overlap.
 
+The 52-week range uses low and high values included in the existing batched Zacks quote response, so displaying it does not add provider requests.
+
 The Zacks 7 Best Stocks view resolves the report's dated edition, reads the seven symbols from its public edition script, and displays the edition date from the resolved URL. Zacks may challenge automated server requests, so the app falls back to its last verified edition instead of showing an empty view; set `ZACKS_7_BEST_EDITION_URL` to a newly resolved report URL whenever an automated refresh cannot get through. Each browser retains up to eight successfully viewed editions and displays earlier weeks as separate seven-stock tables without making extra Zacks requests.
 
 The server is intentionally conservative with provider usage:

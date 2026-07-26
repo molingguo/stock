@@ -170,6 +170,12 @@
 .change-pill.positive { color: #18704f; background: #e5f6ed; }
 .change-pill.negative { color: #a43838; background: #fbeaea; }
 .change-pill.neutral { color: #6d7874; background: #eef1ef; }
+.year-range { width: 100%; display: inline-flex; flex-direction: column; gap: 5px; color: var(--ink); line-height: 1; }
+.year-range.unavailable { align-items: center; color: var(--muted); }
+.year-range__track { position: relative; height: 8px; display: block; }
+.year-range__track::before { content: ''; position: absolute; top: 50%; left: 3px; right: 3px; height: 1px; background: #96a19c; }
+.year-range__marker { position: absolute; top: 50%; width: 9px; height: 9px; background: var(--ink); transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 0 2px white; }
+.year-range__labels { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; font-variant-numeric: tabular-nums; }
 .zacks-rank { display: inline-flex; align-items: center; gap: 5px; min-width: 116px; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1; white-space: nowrap; }
 .zacks-rank strong { font: inherit; font-weight: 900; }
 .zacks-rank.strong-buy { color: #fff; background: #176045; }
@@ -193,8 +199,12 @@
 .stock-card__quote .zacks-rank { min-width: 0; }
 .stock-card dl { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 0 32px; padding-top: 12px; border-top: 1px dashed #e1e7e3; }
 .stock-card dl div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.stock-card dl .stock-card__range { grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e1e7e3; }
 .stock-card dt { color: #8a9691; font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; }
 .stock-card dd { margin: 0; font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stock-card__range dd { overflow: visible; }
+.stock-card__range .year-range { gap: 6px; }
+.stock-card__range .year-range__labels { font-size: 11px; }
 .mobile-limit { margin: 16px 4px 4px; color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; }
 
 .loading-state { padding: 32px 30px; }

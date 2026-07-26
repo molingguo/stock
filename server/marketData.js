@@ -365,6 +365,8 @@ function createMarketDataService({
           marketCap: stock.marketCap ?? quote?.marketCap ?? null,
           volume: stock.volume ?? quote?.volume ?? null,
           pe: stock.pe ?? quote?.pe ?? null,
+          yearLow: stock.yearLow ?? quote?.yearLow ?? null,
+          yearHigh: stock.yearHigh ?? quote?.yearHigh ?? null,
           zacksRank: rating?.rank || null,
           zacksRankText: rating?.text || '',
         };

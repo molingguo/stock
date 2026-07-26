@@ -11,6 +11,8 @@ const stock = {
   volume: 50000000,
   sector: 'Technology',
   pe: 31,
+  yearLow: 120,
+  yearHigh: 220,
   zacksRank: 1,
   zacksRankText: 'Strong Buy',
 };
@@ -64,6 +66,7 @@ test('loads, filters, and switches stock universes', async () => {
     'href',
     'https://finance.yahoo.com/quote/AAPL/'
   );
+  expect(screen.getAllByRole('img', { name: '52-week range from $120.00 to $220.00; current price $200.00' }).length).toBeGreaterThan(0);
   expect(screen.getByText('Strong Buy')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
 

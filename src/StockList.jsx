@@ -172,6 +172,31 @@ function ChangeValue({ value }) {
   return <span className={`change-pill ${tone}`}>{formatPercent(value)}</span>;
 }
 
+function YearRange({ low, high, price }) {
+  const hasRange = Number.isFinite(low) && Number.isFinite(high) && high > low;
+  if (!hasRange) return <span className="year-range unavailable">—</span>;
+
+  const rawPosition = Number.isFinite(price) ? ((price - low) / (high - low)) * 100 : null;
+  const markerPosition = Number.isFinite(rawPosition) ? Math.min(97, Math.max(3, rawPosition)) : null;
+  const currentPrice = Number.isFinite(price) ? `; current price ${formatCurrency(price)}` : '';
+
+  return (
+    <span
+      className="year-range"
+      role="img"
+      aria-label={`52-week range from ${formatCurrency(low)} to ${formatCurrency(high)}${currentPrice}`}
+    >
+      <span className="year-range__track">
+        {markerPosition !== null && <span className="year-range__marker" style={{ left: `${markerPosition}%` }} />}
+      </span>
+      <span className="year-range__labels">
+        <span>{formatCurrency(low)}</span>
+        <span>{formatCurrency(high)}</span>
+      </span>
+    </span>
+  );
+}
+
 function ZacksRank({ rank, text }) {
   if (!Number.isInteger(rank)) return <span className="zacks-rank unavailable">Not rated</span>;
   const tone = ['strong-buy', 'buy', 'hold', 'sell', 'strong-sell'][rank - 1];
@@ -221,6 +246,10 @@ function StockCard({ stock, rank, isEtf }) {
           <div><dt>{isEtf ? 'Fund assets' : 'Market cap'}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
           <div><dt>{isEtf ? 'Category' : 'Sector'}</dt><dd>{stock.sector || 'Other'}</dd></div>
           <div><dt>Volume</dt><dd>{Number.isFinite(stock.volume) ? numberFormatter.format(stock.volume) : '—'}</dd></div>
+          <div className="stock-card__range">
+            <dt>52-week range</dt>
+            <dd><YearRange low={stock.yearLow} high={stock.yearHigh} price={stock.price} /></dd>
+          </div>
         </dl>
       </article>
     </a>
@@ -241,21 +270,20 @@ function LoadingState() {
   );
 }
 
-function useMobileLayout() {
-  const query = '(max-width: 700px)';
-  const [isMobile, setIsMobile] = React.useState(
+function useMediaLayout(query) {
+  const [matches, setMatches] = React.useState(
     () => typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(query).matches : false
   );
 
   React.useEffect(() => {
     if (!window.matchMedia) return undefined;
     const mediaQuery = window.matchMedia(query);
-    const updateLayout = (event) => setIsMobile(event.matches);
+    const updateLayout = (event) => setMatches(event.matches);
     mediaQuery.addEventListener?.('change', updateLayout);
     return () => mediaQuery.removeEventListener?.('change', updateLayout);
-  }, []);
+  }, [query]);
 
-  return isMobile;
+  return matches;
 }
 
 function StockList() {
@@ -268,7 +296,9 @@ function StockList() {
   const [zacksFilter, setZacksFilter] = React.useState('all');
   const [refreshVersion, setRefreshVersion] = React.useState(0);
   const [zacksReportHistory, setZacksReportHistory] = React.useState(loadZacksReportHistory);
-  const isMobile = useMobileLayout();
+  const isMobile = useMediaLayout('(max-width: 700px)');
+  const isCompactTable = useMediaLayout('(max-width: 1300px)');
+  const isNarrowTable = useMediaLayout('(max-width: 1000px)');
   const isEtfUniverse = universe === 'popularEtfs';
   const isBestStocksUniverse = universe === 'zacksBest';
 
@@ -380,6 +410,18 @@ function StockList() {
     { field: 'marketCap', headerName: isEtfUniverse ? 'Fund assets' : 'Market cap', width: 135, type: 'number', valueFormatter: formatCompactCurrency },
     { field: 'sector', headerName: isEtfUniverse ? 'Category' : 'Sector', minWidth: 155, flex: 0.8 },
     ...(!isEtfUniverse ? [{ field: 'pe', headerName: 'P/E', width: 90, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? value.toFixed(1) : '—' }] : []),
+    {
+      field: 'yearRangePosition',
+      headerName: '52-week range',
+      width: 178,
+      type: 'number',
+      valueGetter: (_value, row) => (
+        Number.isFinite(row.yearLow) && Number.isFinite(row.yearHigh) && row.yearHigh > row.yearLow && Number.isFinite(row.price)
+          ? (row.price - row.yearLow) / (row.yearHigh - row.yearLow)
+          : null
+      ),
+      renderCell: ({ row }) => <YearRange low={row.yearLow} high={row.yearHigh} price={row.price} />,
+    },
     { field: 'volume', headerName: 'Volume', width: 110, type: 'number', valueFormatter: (value) => Number.isFinite(value) ? numberFormatter.format(value) : '—' },
   ], [isEtfUniverse, stocks]);
 
@@ -504,6 +546,12 @@ function StockList() {
                     rows={filteredStocks}
                     columns={columns}
                     getRowId={(row) => row.symbol}
+                    columnVisibilityModel={{
+                      marketCap: !isNarrowTable,
+                      sector: !isNarrowTable,
+                      pe: !isCompactTable,
+                      volume: !isCompactTable,
+                    }}
                     onRowClick={openStockDetail}
                     autoHeight
                     disableRowSelectionOnClick
@@ -557,6 +605,12 @@ function StockList() {
                       rows={report.stocks}
                       columns={columns}
                       getRowId={(row) => row.symbol}
+                      columnVisibilityModel={{
+                        marketCap: !isNarrowTable,
+                        sector: !isNarrowTable,
+                        pe: !isCompactTable,
+                        volume: !isCompactTable,
+                      }}
                       onRowClick={openStockDetail}
                       autoHeight
                       disableRowSelectionOnClick

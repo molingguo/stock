@@ -87,7 +87,13 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
     }
     if (url.hostname === 'quote-feed.zacks.com') {
       return jsonResponse({
-        AAA: { ticker: 'AAA', zacks_rank: '1', zacks_rank_text: 'Strong Buy', pe_f1: '24.5' },
+        AAA: {
+          ticker: 'AAA',
+          zacks_rank: '1',
+          zacks_rank_text: 'Strong Buy',
+          pe_f1: '24.5',
+          source: { sungard: { yrlow: '8.25', yrhigh: '14.75' } },
+        },
         BBB: { ticker: 'BBB', zacks_rank: '3', zacks_rank_text: 'Hold', pe_f1: '18.2' },
       });
     }
@@ -109,6 +115,8 @@ test('loads S&P stocks from free public sources without an FMP key', async () =>
   assert.equal(result.stocks[0].zacksRank, 1);
   assert.equal(result.stocks[0].zacksRankText, 'Strong Buy');
   assert.equal(result.stocks[0].pe, 24.5);
+  assert.equal(result.stocks[0].yearLow, 8.25);
+  assert.equal(result.stocks[0].yearHigh, 14.75);
   assert.equal(result.zacksCoverage, 1);
   assert.equal(extendedResult.label, 'U.S. Extended Market');
   assert.deepEqual(extendedResult.stocks.map((stock) => stock.symbol), ['BBB']);

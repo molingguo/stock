@@ -103,6 +103,8 @@ function createZacksRatingsService({
         marketCap: asNumber(item.source?.sungard?.market_cap),
         volume: asNumber(item.volume),
         pe: asNumber(item.pe_f1 || item.source?.sungard?.pe_ratio),
+        yearLow: asNumber(item.source?.sungard?.yrlow),
+        yearHigh: asNumber(item.source?.sungard?.yrhigh),
       } : null;
       return [symbol, { rating, quote }];
     }));
