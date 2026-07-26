@@ -65,6 +65,11 @@ function formatReportDate(value) {
   }).format(date);
 }
 
+function stockDetailUrl(symbol) {
+  const yahooSymbol = String(symbol || '').trim().toUpperCase().replaceAll('.', '-');
+  return `https://finance.yahoo.com/quote/${encodeURIComponent(yahooSymbol)}/`;
+}
+
 async function fetchUniverse(universe, force = false) {
   const cached = responseCache.get(universe);
   if (!force && cached && Date.now() - cached.cachedAt < CLIENT_CACHE_TTL_MS) {
@@ -141,28 +146,36 @@ function StatCard({ eyebrow, value, detail, tone = 'default' }) {
 
 function StockCard({ stock, rank, isEtf }) {
   return (
-    <article className="stock-card">
-      <div className="stock-card__lead">
-        <span className="rank">{rank}</span>
-        <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
-        <div>
-          <strong>{stock.symbol}</strong>
-          <span>{stock.name}</span>
+    <a
+      className="stock-card-link"
+      href={stockDetailUrl(stock.symbol)}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`View ${stock.symbol} on Yahoo Finance`}
+    >
+      <article className="stock-card">
+        <div className="stock-card__lead">
+          <span className="rank">{rank}</span>
+          <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
+          <div>
+            <strong>{stock.symbol}</strong>
+            <span>{stock.name}</span>
+          </div>
         </div>
-      </div>
-      <div className="stock-card__quote">
-        <strong>{formatCurrency(stock.price)}</strong>
-        <div>
-          <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} />
-          <ChangeValue value={stock.changePercentage} />
+        <div className="stock-card__quote">
+          <strong>{formatCurrency(stock.price)}</strong>
+          <div>
+            <ZacksRank rank={stock.zacksRank} text={stock.zacksRankText} />
+            <ChangeValue value={stock.changePercentage} />
+          </div>
         </div>
-      </div>
-      <dl>
-        <div><dt>{isEtf ? 'Fund assets' : 'Market cap'}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
-        <div><dt>{isEtf ? 'Category' : 'Sector'}</dt><dd>{stock.sector || 'Other'}</dd></div>
-        <div><dt>Volume</dt><dd>{Number.isFinite(stock.volume) ? numberFormatter.format(stock.volume) : '—'}</dd></div>
-      </dl>
-    </article>
+        <dl>
+          <div><dt>{isEtf ? 'Fund assets' : 'Market cap'}</dt><dd>{formatCompactCurrency(stock.marketCap)}</dd></div>
+          <div><dt>{isEtf ? 'Category' : 'Sector'}</dt><dd>{stock.sector || 'Other'}</dd></div>
+          <div><dt>Volume</dt><dd>{Number.isFinite(stock.volume) ? numberFormatter.format(stock.volume) : '—'}</dd></div>
+        </dl>
+      </article>
+    </a>
   );
 }
 
@@ -277,10 +290,16 @@ function StockList() {
       flex: 1.2,
       cellClassName: 'align-center-cell',
       renderCell: ({ row }) => (
-        <div className="company-cell">
+        <a
+          className="company-cell stock-detail-link"
+          href={stockDetailUrl(row.symbol)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`View ${row.symbol} on Yahoo Finance`}
+        >
           <span className="ticker-avatar">{row.symbol.slice(0, 1)}</span>
           <span><strong>{row.symbol}</strong><small>{row.name}</small></span>
-        </div>
+        </a>
       ),
     },
     { field: 'price', headerName: 'Price', width: 118, type: 'number', valueFormatter: formatCurrency },
@@ -427,6 +446,10 @@ function StockList() {
                     rows={filteredStocks}
                     columns={columns}
                     getRowId={(row) => row.symbol}
+                    onRowClick={({ row }, event) => {
+                      if (event.target.closest('a')) return;
+                      window.open(stockDetailUrl(row.symbol), '_blank', 'noopener,noreferrer');
+                    }}
                     autoHeight
                     disableRowSelectionOnClick
                     rowHeight={68}

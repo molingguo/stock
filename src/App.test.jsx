@@ -48,6 +48,10 @@ test('loads, filters, and switches stock universes', async () => {
   render(<App />);
 
   expect(await screen.findAllByText('AAPL')).not.toHaveLength(0);
+  expect(screen.getByRole('link', { name: 'View AAPL on Yahoo Finance' })).toHaveAttribute(
+    'href',
+    'https://finance.yahoo.com/quote/AAPL/'
+  );
   expect(screen.getByText('Strong Buy')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /see the market/i })).toBeInTheDocument();
 
