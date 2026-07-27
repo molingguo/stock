@@ -1,5 +1,6 @@
 import React from 'react';
 import { combinePortfolioPositions, importFidelityFile, mergePortfolioAccounts } from './portfolio/importClient';
+import { fetchPortfolioResearch } from './portfolio/researchClient';
 
 const PAGE_SIZE = 100;
 const ACCOUNT_TYPES = ['individual-taxable', 'joint-taxable', 'roth-ira', 'traditional-ira', '401k', '403b', 'hsa', 'trust', 'other'];
@@ -32,6 +33,31 @@ function formatDate(value, locale) {
 
 function gainClass(value) {
   return value > 0 ? 'is-positive' : value < 0 ? 'is-negative' : '';
+}
+
+function zacksUrl(symbol) {
+  return `https://www.zacks.com/stock/quote/${encodeURIComponent(symbol)}`;
+}
+
+function fScoreUrl(symbol) {
+  return `https://stockanalysis.com/stocks/${encodeURIComponent(symbol.toLowerCase().replaceAll('.', '-'))}/statistics/`;
+}
+
+function PortfolioZacksRank({ research, symbol, t }) {
+  if (!research || !Number.isInteger(research.zacksRank)) return <span className="portfolio-rating-empty">—</span>;
+  const rankKey = ['rank.strongBuy', 'rank.buy', 'rank.hold', 'rank.sell', 'rank.strongSell'][research.zacksRank - 1];
+  return <a className={`portfolio-zacks-rank rank-${research.zacksRank}`} href={zacksUrl(symbol)} target="_blank" rel="noreferrer">
+    <strong>#{research.zacksRank}</strong><span>{t(rankKey)}</span>
+  </a>;
+}
+
+function PortfolioFScore({ research, symbol, t }) {
+  if (!research || !Number.isInteger(research.piotroskiScore)) return <span className="portfolio-rating-empty">—</span>;
+  return <a
+    className={`portfolio-f-score ${research.piotroskiScore >= 7 ? 'strong' : research.piotroskiScore >= 4 ? 'neutral' : 'weak'}`}
+    href={fScoreUrl(symbol)} target="_blank" rel="noreferrer"
+    aria-label={t('score.details', { symbol, score: research.piotroskiScore })}
+  ><strong>{research.piotroskiScore}</strong><span>/9</span></a>;
 }
 
 function PortfolioSummary({ label, value, detail, tone = '' }) {
@@ -158,7 +184,7 @@ function PortfolioEmpty({ importing, error, onFiles, locale, t }) {
   );
 }
 
-function HoldingsTable({ rows, locale, t }) {
+function HoldingsTable({ rows, researchBySymbol, locale, t }) {
   const [page, setPage] = React.useState(0);
   React.useEffect(() => setPage(0), [rows]);
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -170,7 +196,8 @@ function HoldingsTable({ rows, locale, t }) {
         <table className="portfolio-table">
           <thead><tr>
             <th>{t('portfolio.symbol')}</th><th>{t('portfolio.accountsColumn')}</th><th>{t('portfolio.quantity')}</th>
-            <th>{t('portfolio.lastPrice')}</th><th>{t('portfolio.value')}</th><th>{t('portfolio.weight')}</th><th>{t('portfolio.totalGain')}</th>
+            <th>{t('portfolio.lastPrice')}</th><th>{t('portfolio.value')}</th><th>{t('portfolio.weight')}</th>
+            <th>{t('column.zacksRank')}</th><th>{t('column.fScore')}</th><th>{t('portfolio.totalGain')}</th>
           </tr></thead>
           <tbody>{visible.map((position) => (
             <tr key={position.id}>
@@ -180,6 +207,8 @@ function HoldingsTable({ rows, locale, t }) {
               <td>{formatMoney(position.lastPrice, locale)}</td>
               <td>{formatMoney(position.marketValue, locale)}</td>
               <td>{Number.isFinite(position.portfolioPercent) ? `${position.portfolioPercent.toFixed(2)}%` : '—'}</td>
+              <td><PortfolioZacksRank research={researchBySymbol[position.symbol]} symbol={position.symbol} t={t} /></td>
+              <td><PortfolioFScore research={researchBySymbol[position.symbol]} symbol={position.symbol} t={t} /></td>
               <td className={gainClass(position.totalGainLoss)}>{formatMoney(position.totalGainLoss, locale)}</td>
             </tr>
           ))}</tbody>
@@ -194,6 +223,8 @@ function HoldingsTable({ rows, locale, t }) {
               <div><dt>{t('portfolio.quantity')}</dt><dd>{formatNumber(position.quantity, locale)}</dd></div>
               <div><dt>{t('portfolio.weight')}</dt><dd>{Number.isFinite(position.portfolioPercent) ? `${position.portfolioPercent.toFixed(2)}%` : '—'}</dd></div>
               <div><dt>{t('portfolio.totalGain')}</dt><dd className={gainClass(position.totalGainLoss)}>{formatMoney(position.totalGainLoss, locale)}</dd></div>
+              <div><dt>{t('column.zacksRank')}</dt><dd><PortfolioZacksRank research={researchBySymbol[position.symbol]} symbol={position.symbol} t={t} /></dd></div>
+              <div><dt>{t('column.fScore')}</dt><dd><PortfolioFScore research={researchBySymbol[position.symbol]} symbol={position.symbol} t={t} /></dd></div>
             </dl>
             <small>{position.accountAliases.join(', ')}</small>
           </article>
@@ -214,6 +245,9 @@ export default function PortfolioView({ accounts, setAccounts, locale, t }) {
   const [error, setError] = React.useState('');
   const [selectedAccountId, setSelectedAccountId] = React.useState('all');
   const [search, setSearch] = React.useState('');
+  const [researchBySymbol, setResearchBySymbol] = React.useState({});
+  const [researchStatus, setResearchStatus] = React.useState('idle');
+  const [researchError, setResearchError] = React.useState('');
 
   const importFiles = async (files) => {
     setImporting(true);
@@ -254,6 +288,15 @@ export default function PortfolioView({ accounts, setAccounts, locale, t }) {
   }, [positions, search]);
   const totalValue = finiteSum(positions, 'marketValue');
   const totalGain = finiteSum(positions, 'totalGainLoss');
+  const researchSymbols = React.useMemo(() => [...new Set(positions
+    .filter((position) => position.symbol && !position.isCorePosition)
+    .map((position) => position.symbol))].sort(), [positions]);
+  const researchLoaded = researchSymbols.length > 0
+    && researchSymbols.every((symbol) => Object.prototype.hasOwnProperty.call(researchBySymbol, symbol));
+  const researchCoverage = researchSymbols.filter((symbol) => {
+    const research = researchBySymbol[symbol];
+    return Number.isInteger(research?.zacksRank) || Number.isInteger(research?.piotroskiScore);
+  }).length;
   const selectedSnapshot = selectedAccountId === 'all'
     ? accounts.map((account) => account.snapshotDate).filter(Boolean).sort().at(-1)
     : accounts.find((account) => account.id === selectedAccountId)?.snapshotDate;
@@ -284,6 +327,30 @@ export default function PortfolioView({ accounts, setAccounts, locale, t }) {
         <PortfolioSummary label={t('portfolio.accounts')} value={selectedAccountId === 'all' ? accounts.length : 1} detail={t('portfolio.sessionAccounts')} />
         <PortfolioSummary label={t('portfolio.positions')} value={positions.length} detail={t('portfolio.distinctPositions')} />
       </div>
+      <div className="portfolio-research-bar">
+        <div>
+          <strong>{t('portfolio.researchTitle')}</strong>
+          <span>{t('portfolio.researchPrivacy')}</span>
+          {researchLoaded && <small>{t('portfolio.researchCoverage', { covered: researchCoverage, count: researchSymbols.length })}</small>}
+          {researchError && <small className="is-error" role="alert">{researchError}</small>}
+        </div>
+        <button
+          type="button"
+          disabled={!researchSymbols.length || researchStatus === 'loading' || researchLoaded}
+          onClick={async () => {
+            setResearchStatus('loading');
+            setResearchError('');
+            try {
+              const research = await fetchPortfolioResearch(researchSymbols);
+              setResearchBySymbol((current) => ({ ...current, ...research }));
+              setResearchStatus('loaded');
+            } catch (loadError) {
+              setResearchStatus('error');
+              setResearchError(locale === 'zh-CN' ? t('portfolio.researchError') : loadError.message);
+            }
+          }}
+        >{t(researchStatus === 'loading' ? 'portfolio.researchLoading' : researchLoaded ? 'portfolio.researchLoaded' : 'portfolio.researchLoad')}</button>
+      </div>
       <div className="portfolio-controls">
         <label><span>{t('portfolio.accountView')}</span><select value={selectedAccountId} onChange={(event) => setSelectedAccountId(event.target.value)}>
           <option value="all">{t('portfolio.combined')}</option>
@@ -292,7 +359,7 @@ export default function PortfolioView({ accounts, setAccounts, locale, t }) {
         <label><span className="sr-only">{t('portfolio.search')}</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('portfolio.search')} /></label>
         <span>{t('portfolio.resultCount', { count: filtered.length })}</span>
       </div>
-      {filtered.length ? <HoldingsTable rows={filtered} locale={locale} t={t} /> : <div className="portfolio-no-results">{t('portfolio.noResults')}</div>}
+      {filtered.length ? <HoldingsTable rows={filtered} researchBySymbol={researchBySymbol} locale={locale} t={t} /> : <div className="portfolio-no-results">{t('portfolio.noResults')}</div>}
       <div className="portfolio-account-list">
         <div><span className="eyebrow">{t('portfolio.accountsEyebrow')}</span><h3>{t('portfolio.importedAccounts')}</h3></div>
         {accounts.map((account) => <article key={account.id}>

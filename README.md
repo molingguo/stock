@@ -22,7 +22,9 @@ Favorites store only a validated list of up to 100 ticker symbols in the browser
 
 The Portfolio tab accepts the original **Portfolio Positions CSV** downloaded from Fidelity. You may select multiple files without editing account numbers or names first. Each file is parsed in a dedicated browser worker, the original account number and account name are discarded during normalization, and only a browser-salted one-way account fingerprint remains so a newer snapshot can replace the same account instead of creating a duplicate. Core cash positions marked with `**`, Cash/Margin holding types, tax-account types, quantities, cost basis, gains, and the downloaded snapshot date are normalized.
 
-No portfolio file, account identity, holding, or balance is sent to the Northstar server or a market-data provider. The normalized portfolio exists only in the current page's React memory: switching between Northstar tabs preserves it, while reloading or closing the page clears it. Local storage contains only a random fingerprint salt, not portfolio data. Imported Fidelity prices and values are displayed as a snapshot, so the Portfolio tab creates no quote API requests.
+No portfolio file, account identity, quantity, balance, cost basis, or gain is sent to the Northstar server or a market-data provider. The normalized portfolio exists only in the current page's React memory: switching between Northstar tabs preserves it, while reloading or closing the page clears it. Local storage contains only a random fingerprint salt, not portfolio data. Imported Fidelity prices and values are displayed as a snapshot, so importing and viewing the Portfolio tab creates no quote API requests.
+
+The optional **Load research ratings** action sends only eligible ticker symbols to Northstar's existing cached research endpoint and its Zacks quote source. It adds available Zacks ranks and locally cached SEC-derived Piotroski F-scores to the holdings table; account aliases, quantities, values, and gains remain local. Symbols are normalized, deduplicated, sorted for stable cache keys, and requested sequentially in batches of at most 100. Results are reused in memory for 12 hours, while the server reuses its existing per-ticker Zacks cache, so repeated viewing does not create additional provider requests. Core cash positions are excluded.
 
 This design avoids a portfolio database and its hosting cost and is safe for normal use on a trusted, updated device. It cannot protect data from a malicious browser extension, compromised device, injected third-party script, or another person using an unlocked browser session. Import files should still be kept in a protected local folder and deleted when no longer needed. E\*TRADE and Wealthfront native CSV formats are not yet supported; unsupported files fail locally without uploading their contents.
 
@@ -45,6 +47,7 @@ The server is intentionally conservative with provider usage:
 - Cached data can be served for up to 24 hours if a source is unavailable or rate limiting.
 - The browser also keeps each universe response for 60 seconds.
 - ETF holdings are lazy-loaded per symbol and cached for 24 hours in both local storage and the server, with concurrent-request deduplication and a seven-day stale fallback.
+- Portfolio research is opt-in, sends symbols only, uses sequential batches of at most 100, and reuses both a 12-hour client cache and the existing server rating cache.
 
 This is a good default for a single application instance. For a scaled deployment, replace the in-memory cache with Redis or another shared cache so all instances reuse the same provider response.
 

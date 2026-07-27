@@ -212,9 +212,12 @@ test('imports a Fidelity portfolio locally and keeps normalized holdings in sess
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   }));
-  global.fetch = vi.fn(async () => ({
+  global.fetch = vi.fn(async (url) => ({
     ok: true,
-    json: async () => ({ universe: 'sp500', label: 'S&P 500', stocks: [], sources: [] }),
+    json: async () => url.includes('universe=favorites') ? ({
+      universe: 'favorites',
+      stocks: [{ symbol: 'AAPL', zacksRank: 2, zacksRankText: 'Buy', piotroskiScore: 8 }],
+    }) : ({ universe: 'sp500', label: 'S&P 500', stocks: [], sources: [] }),
   }));
   const normalizedPayload = {
     snapshotDate: '2026-07-26',
@@ -257,6 +260,13 @@ test('imports a Fidelity portfolio locally and keeps normalized holdings in sess
   expect(await screen.findByRole('heading', { name: 'Combined Portfolio' })).toBeInTheDocument();
   expect(screen.getAllByText('AAPL').length).toBeGreaterThan(0);
   expect(screen.getAllByText('$1,000.00').length).toBeGreaterThan(0);
+  expect(screen.getByRole('button', { name: 'Load research ratings' })).toBeEnabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Load research ratings' }));
+  expect(await screen.findByRole('link', { name: '#2 Buy' })).toHaveAttribute('href', 'https://www.zacks.com/stock/quote/AAPL');
+  expect(screen.getByRole('link', { name: 'View AAPL Piotroski F-score 8 out of 9 details' })).toHaveAttribute(
+    'href', 'https://stockanalysis.com/stocks/aapl/statistics/'
+  );
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes('universe=favorites'))).toHaveLength(1);
   expect([...Array(window.localStorage.length)].map((_, index) => window.localStorage.key(index))).toEqual([
     'northstar:portfolio-fingerprint-salt:v1',
   ]);
