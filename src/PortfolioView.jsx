@@ -1,5 +1,5 @@
 import React from 'react';
-import { combinePortfolioPositions, importFidelityFile, mergePortfolioAccounts } from './portfolio/importClient';
+import { combinePortfolioPositions, importPortfolioFile, mergePortfolioAccounts } from './portfolio/importClient';
 import { fetchPortfolioResearch } from './portfolio/researchClient';
 
 const PAGE_SIZE = 100;
@@ -88,7 +88,7 @@ function AccountEditor({ account, onChange, locale, t }) {
   return (
     <article className="portfolio-account-editor">
       <div>
-        <span>{t('portfolio.fidelity')}</span>
+        <span>{t(`portfolio.broker.${account.broker}`)}</span>
         <small>{account.reconciliation.positionCount} {t('portfolio.positionsLower')}</small>
       </div>
       <label>
@@ -160,7 +160,7 @@ function PortfolioEmpty({ importing, error, onFiles, locale, t }) {
         <span className="eyebrow">{t('portfolio.importEyebrow')}</span>
         <h2>{t('portfolio.importTitle')}</h2>
         <p>{t('portfolio.importDescription')}</p>
-        <span className="portfolio-format-badge">CSV · {t('portfolio.fidelity')}</span>
+        <span className="portfolio-format-badge">CSV · {t('portfolio.supportedBrokers')}</span>
       </div>
       <div
         className={`portfolio-drop-zone ${dragging ? 'is-dragging' : ''}`}
@@ -254,17 +254,23 @@ export default function PortfolioView({ accounts, setAccounts, locale, t }) {
     setError('');
     try {
       const payloads = [];
-      for (const file of files) payloads.push(await importFidelityFile(file));
+      for (const file of files) payloads.push(await importPortfolioFile(file));
       const importedAccounts = payloads.flatMap((payload) => payload.accounts.map((account) => ({
         ...account,
         snapshotDate: payload.snapshotDate,
       })));
       const existingById = new Map(accounts.map((account) => [account.id, account]));
-      const deduped = new Map(importedAccounts.map((account) => [account.id, {
-        ...account,
-        alias: existingById.get(account.id)?.alias || account.suggestedAlias,
-        accountType: existingById.get(account.id)?.accountType || account.accountType,
-      }]));
+      const brokerCounts = new Map();
+      const deduped = new Map(importedAccounts.map((account) => {
+        const brokerCount = (brokerCounts.get(account.broker) || 0) + 1;
+        brokerCounts.set(account.broker, brokerCount);
+        const brokerName = account.broker === 'etrade' ? 'E*TRADE' : 'Fidelity';
+        return [account.id, {
+          ...account,
+          alias: existingById.get(account.id)?.alias || `${brokerName} account ${brokerCount}`,
+          accountType: existingById.get(account.id)?.accountType || account.accountType,
+        }];
+      }));
       setPending({
         accounts: [...deduped.values()],
         snapshotDate: payloads.map((payload) => payload.snapshotDate).filter(Boolean).sort().at(-1) || null,

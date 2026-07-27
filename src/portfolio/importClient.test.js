@@ -2,7 +2,7 @@ import { expect, test, vi } from 'vitest';
 import {
   combinePortfolioPositions,
   getPortfolioFingerprintSalt,
-  importFidelityFile,
+  importPortfolioFile,
   mergePortfolioAccounts,
 } from './importClient';
 
@@ -70,10 +70,10 @@ test('passes only file contents and a random fingerprint salt to the local worke
     terminate = vi.fn();
   }
   const file = { name: 'Portfolio_sensitive-name.csv', size: 100, text: vi.fn(async () => 'safe csv contents') };
-  await importFidelityFile(file, { WorkerClass: WorkerMock });
+  await importPortfolioFile(file, { WorkerClass: WorkerMock });
 
   expect(messages).toHaveLength(1);
-  expect(messages[0]).toMatchObject({ type: 'import-fidelity', csvText: 'safe csv contents' });
+  expect(messages[0]).toMatchObject({ type: 'import-portfolio', csvText: 'safe csv contents' });
   expect(messages[0].fingerprintSalt).toMatch(/^[a-f0-9]{64}$/);
   expect(JSON.stringify(messages[0])).not.toContain(file.name);
   expect(global.fetch).not.toHaveBeenCalled();

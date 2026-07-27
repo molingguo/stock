@@ -20,13 +20,20 @@ export function getPortfolioFingerprintSalt() {
   }
 }
 
-export function importFidelityFile(file, { WorkerClass = globalThis.Worker } = {}) {
-  if (!file || typeof file.text !== 'function') return Promise.reject(new Error('Select a Fidelity CSV file.'));
+function createImportWorker(WorkerClass) {
+  if (WorkerClass) return new WorkerClass(new URL('./importWorker.js', import.meta.url), { type: 'module' });
+  return new Worker(new URL('./importWorker.js', import.meta.url), { type: 'module' });
+}
+
+export function importPortfolioFile(file, { WorkerClass } = {}) {
+  if (!file || typeof file.text !== 'function') return Promise.reject(new Error('Select a supported portfolio CSV file.'));
   if (file.size > fidelityImportLimits.maxBytes) return Promise.reject(new Error('Portfolio files are limited to 5 MB.'));
-  if (typeof WorkerClass !== 'function') return Promise.reject(new Error('This browser cannot securely process portfolio files.'));
+  if (typeof (WorkerClass || globalThis.Worker) !== 'function') {
+    return Promise.reject(new Error('This browser cannot securely process portfolio files.'));
+  }
 
   return new Promise((resolve, reject) => {
-    const worker = new WorkerClass(new URL('./importWorker.js', import.meta.url), { type: 'module' });
+    const worker = createImportWorker(WorkerClass);
     const requestId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
     let csvText = null;
 
@@ -53,7 +60,7 @@ export function importFidelityFile(file, { WorkerClass = globalThis.Worker } = {
         csvText = text;
         worker.postMessage({
           id: requestId,
-          type: 'import-fidelity',
+          type: 'import-portfolio',
           csvText,
           fingerprintSalt: getPortfolioFingerprintSalt(),
         });
@@ -65,6 +72,8 @@ export function importFidelityFile(file, { WorkerClass = globalThis.Worker } = {
       });
   });
 }
+
+export const importFidelityFile = importPortfolioFile;
 
 export function mergePortfolioAccounts(currentAccounts, importedAccounts, importedAt = new Date().toISOString()) {
   const byId = new Map(currentAccounts.map((account) => [account.id, account]));

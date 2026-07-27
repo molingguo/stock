@@ -1,10 +1,10 @@
-import { parseFidelityPositionsCsv } from './fidelityCsv';
+import { parsePortfolioCsv } from './portfolioCsv';
 
 self.addEventListener('message', async (event) => {
-  if (event.data?.type !== 'import-fidelity') return;
+  if (event.data?.type !== 'import-portfolio') return;
   let csvText = event.data.csvText;
   try {
-    const payload = await parseFidelityPositionsCsv(csvText, {
+    const payload = await parsePortfolioCsv(csvText, {
       fingerprintSalt: event.data.fingerprintSalt,
     });
     self.postMessage({ id: event.data.id, ok: true, payload });
