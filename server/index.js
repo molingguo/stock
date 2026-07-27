@@ -75,8 +75,8 @@ function createApp({
 
 if (require.main === module) {
   const port = Number(process.env.PORT) || 3001;
-  createApp().listen(port, () => {
-    console.log(`Stock dashboard server listening on http://localhost:${port}`);
+  createApp().listen(port, '127.0.0.1', () => {
+    console.log(`Stock dashboard server listening on http://127.0.0.1:${port}`);
   });
 }
 
