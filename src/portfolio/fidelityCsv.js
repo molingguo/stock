@@ -18,7 +18,7 @@ const FIDELITY_COLUMNS = {
   percentOfAccount: 'percent of account',
   costBasisTotal: 'cost basis total',
   averageCostBasis: 'average cost basis',
-  assetType: 'type',
+  holdingType: 'type',
 };
 
 export class PortfolioImportError extends Error {
@@ -153,8 +153,9 @@ async function accountFingerprint(accountNumber, fingerprintSalt) {
 
 function positionFromRow(row, columns) {
   const value = (field) => row[columns[field]];
+  const sourceSymbol = String(value('symbol') || '').trim();
   return {
-    symbol: normalizeSymbol(value('symbol')),
+    symbol: normalizeSymbol(sourceSymbol),
     description: String(value('description') || '').trim(),
     quantity: parseFinancialNumber(value('quantity')),
     lastPrice: parseFinancialNumber(value('lastPrice')),
@@ -167,7 +168,8 @@ function positionFromRow(row, columns) {
     portfolioPercent: parseFinancialNumber(value('percentOfAccount')),
     costBasis: parseFinancialNumber(value('costBasisTotal')),
     averageCostBasis: parseFinancialNumber(value('averageCostBasis')),
-    assetType: String(value('assetType') || '').trim(),
+    holdingType: String(value('holdingType') || '').trim(),
+    isCorePosition: /\*\*$/.test(sourceSymbol),
   };
 }
 

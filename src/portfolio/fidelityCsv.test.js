@@ -50,6 +50,8 @@ describe('Fidelity Portfolio Positions CSV parser', () => {
       symbol: 'SPAXX',
       quantity: null,
       marketValue: 1000,
+      holdingType: 'Cash',
+      isCorePosition: true,
     });
     expect(payload.accounts[1]).toMatchObject({
       accountType: 'roth-ira',

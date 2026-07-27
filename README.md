@@ -1,6 +1,6 @@
 # Northstar Markets
 
-A responsive U.S. market explorer with live S&P 500 constituents, popular ETFs, a market-cap-ranked U.S. Extended Market view, Zacks' weekly 7 Best Stocks report, and a browser-local favorites watchlist.
+A responsive U.S. market explorer with live S&P 500 constituents, popular ETFs, a market-cap-ranked U.S. Extended Market view, Zacks' weekly 7 Best Stocks report, a browser-local favorites watchlist, and a private multi-account portfolio view.
 
 ## Data architecture
 
@@ -17,6 +17,14 @@ Selecting a desktop row, company name, or the body of a mobile stock card opens 
 The current universe can be exported as CSV from the table header. Exports include only rows matching the active search, sector, and Zacks-rank filters and preserve the table's selected sort order.
 
 Favorites store only a validated list of up to 100 ticker symbols in the browser's local storage. Opening the Favorites tab resolves every saved symbol through one cached bulk quote request, so no database, account, or per-ticker request is required. Favorites are specific to the current browser and device; clearing site data removes them, and they do not synchronize between devices.
+
+## Private portfolio import
+
+The Portfolio tab accepts the original **Portfolio Positions CSV** downloaded from Fidelity. You may select multiple files without editing account numbers or names first. Each file is parsed in a dedicated browser worker, the original account number and account name are discarded during normalization, and only a browser-salted one-way account fingerprint remains so a newer snapshot can replace the same account instead of creating a duplicate. Core cash positions marked with `**`, Cash/Margin holding types, tax-account types, quantities, cost basis, gains, and the downloaded snapshot date are normalized.
+
+No portfolio file, account identity, holding, or balance is sent to the Northstar server or a market-data provider. The normalized portfolio exists only in the current page's React memory: switching between Northstar tabs preserves it, while reloading or closing the page clears it. Local storage contains only a random fingerprint salt, not portfolio data. Imported Fidelity prices and values are displayed as a snapshot, so the Portfolio tab creates no quote API requests.
+
+This design avoids a portfolio database and its hosting cost and is safe for normal use on a trusted, updated device. It cannot protect data from a malicious browser extension, compromised device, injected third-party script, or another person using an unlocked browser session. Import files should still be kept in a protected local folder and deleted when no longer needed. E\*TRADE and Wealthfront native CSV formats are not yet supported; unsupported files fail locally without uploading their contents.
 
 The interface is available in English at `/` and Simplified Chinese at the canonical `/zh-CN/` route. The language button in the top-right updates the URL without reloading or repeating market-data requests, preserves query parameters and hash fragments, and supports browser back/forward navigation. Legacy `/zh_CN/` links are accepted and normalized to `/zh-CN/`; AWS Amplify's existing catch-all compute route serves both locale paths without extra configuration.
 

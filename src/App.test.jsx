@@ -204,6 +204,68 @@ test('uses exact TradingView exchange prefixes for ETF charts', () => {
   expect(tradingViewSymbol({ ...etfStock, symbol: 'FBTC', exchange: '' })).toBe('CBOE:FBTC');
 });
 
+test('imports a Fidelity portfolio locally and keeps normalized holdings in session memory', async () => {
+  window.history.replaceState({}, '', '/');
+  window.localStorage.clear();
+  window.matchMedia = vi.fn(() => ({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+  global.fetch = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({ universe: 'sp500', label: 'S&P 500', stocks: [], sources: [] }),
+  }));
+  const normalizedPayload = {
+    snapshotDate: '2026-07-26',
+    accounts: [{
+      id: 'fidelity:safe-fingerprint',
+      broker: 'fidelity',
+      suggestedAlias: 'Fidelity account 1',
+      accountType: 'individual-taxable',
+      reconciliation: { positionCount: 1, warnings: [] },
+      totals: { marketValue: 1000, costBasis: 800, totalGainLoss: 200, portfolioPercent: 100 },
+      positions: [{
+        id: 'safe:AAPL:1', symbol: 'AAPL', description: 'Apple Inc.', quantity: 5, lastPrice: 200,
+        marketValue: 1000, costBasis: 800, totalGainLoss: 200, dayGainLoss: 5, holdingType: 'Cash',
+      }],
+    }],
+  };
+  global.Worker = class WorkerMock {
+    listeners = {};
+    addEventListener(type, listener) { this.listeners[type] = listener; }
+    postMessage(message) {
+      queueMicrotask(() => this.listeners.message({ data: { id: message.id, ok: true, payload: normalizedPayload } }));
+    }
+    terminate() {}
+  };
+
+  render(<App />);
+  await screen.findByRole('heading', { name: /see the market/i });
+  const callsBeforePortfolio = global.fetch.mock.calls.length;
+  fireEvent.click(screen.getByRole('button', { name: /^Portfolio/ }));
+  expect(await screen.findByRole('heading', { name: 'Bring your accounts together.' })).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledTimes(callsBeforePortfolio);
+
+  const privateFile = { name: 'Portfolio_REAL-NAME_9999.csv', size: 100, text: vi.fn(async () => 'private source contents') };
+  fireEvent.change(document.querySelector('.portfolio-drop-zone input[type="file"]'), { target: { files: [privateFile] } });
+  expect(await screen.findByRole('heading', { name: 'Review before adding' })).toBeInTheDocument();
+  expect(document.body).not.toHaveTextContent('REAL-NAME');
+  expect(document.body).not.toHaveTextContent('9999');
+  fireEvent.click(screen.getByRole('button', { name: 'Add or replace accounts' }));
+
+  expect(await screen.findByRole('heading', { name: 'Combined Portfolio' })).toBeInTheDocument();
+  expect(screen.getAllByText('AAPL').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('$1,000.00').length).toBeGreaterThan(0);
+  expect([...Array(window.localStorage.length)].map((_, index) => window.localStorage.key(index))).toEqual([
+    'northstar:portfolio-fingerprint-salt:v1',
+  ]);
+
+  fireEvent.click(screen.getByRole('button', { name: /^S&P 500/ }));
+  fireEvent.click(screen.getByRole('button', { name: /^Portfolio/ }));
+  expect(await screen.findByRole('heading', { name: 'Combined Portfolio' })).toBeInTheDocument();
+}, 15_000);
+
 test('briefly caches ETF provider errors unless the user explicitly retries', async () => {
   window.localStorage.removeItem('northstar:etf-holdings:v1:VOO');
   global.fetch = vi.fn(async () => ({

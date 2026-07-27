@@ -10,6 +10,7 @@ import {
   translateUniverseLabel,
 } from './i18n';
 import { companyNameForLocale } from './companyNamesZh';
+import PortfolioView from './PortfolioView';
 
 const DataGrid = React.lazy(() =>
   import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid }))
@@ -73,6 +74,7 @@ const universeOptions = [
   { value: 'extendedMarket', label: 'Extended Market', description: 'Top 1,000 beyond S&P 500' },
   { value: 'zacksBest', label: '7 Best Stocks', description: 'Weekly 30-day picks' },
   { value: 'favorites', label: 'Favorites', description: 'Saved in this browser' },
+  { value: 'portfolio', label: 'Portfolio', description: 'Private, local CSV import' },
 ];
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -958,12 +960,14 @@ function StockList() {
   const [favoriteSymbols, setFavoriteSymbols] = React.useState(loadFavoriteSymbols);
   const [selectedStock, setSelectedStock] = React.useState(null);
   const [sortModel, setSortModel] = React.useState([]);
+  const [portfolioAccounts, setPortfolioAccounts] = React.useState([]);
   const isMobile = useMediaLayout('(max-width: 700px)');
   const isCompactTable = useMediaLayout('(max-width: 1300px)');
   const isNarrowTable = useMediaLayout('(max-width: 1000px)');
   const isEtfUniverse = universe === 'popularEtfs';
   const isBestStocksUniverse = universe === 'zacksBest';
   const isFavoritesUniverse = universe === 'favorites';
+  const isPortfolioUniverse = universe === 'portfolio';
   const favoriteSymbolsKey = favoriteSymbols.join(',');
   const activeFavoritesKey = isFavoritesUniverse ? favoriteSymbolsKey : '';
   const favoriteSet = React.useMemo(() => new Set(favoriteSymbols), [favoriteSymbols]);
@@ -997,6 +1001,11 @@ function StockList() {
   }, []);
 
   React.useEffect(() => {
+    if (isPortfolioUniverse) {
+      setLoading(false);
+      setError('');
+      return undefined;
+    }
     let active = true;
     setLoading(true);
     setError('');
@@ -1016,7 +1025,7 @@ function StockList() {
       });
 
     return () => { active = false; };
-  }, [activeFavoritesKey, isFavoritesUniverse, universe, refreshVersion]);
+  }, [activeFavoritesKey, isFavoritesUniverse, isPortfolioUniverse, universe, refreshVersion]);
 
   React.useEffect(() => {
     if (data?.universe !== 'zacksBest') return;
@@ -1210,6 +1219,9 @@ function StockList() {
         </div>
       </section>
 
+      {isPortfolioUniverse ? (
+        <PortfolioView accounts={portfolioAccounts} setAccounts={setPortfolioAccounts} locale={locale} t={t} />
+      ) : <>
       <section className="stats-grid" aria-label={t('summary.label')}>
         <StatCard
           eyebrow={t('summary.sp500Today')}
@@ -1450,10 +1462,16 @@ function StockList() {
           )}
         </section>
       )}
+      </>}
 
       <footer>
-        <p>{t('footer.sources', { sources: data?.sources?.join(t('common.and')) || t('common.publicSources') })}</p>
-        <p>{t('footer.disclaimer')}</p>
+        {isPortfolioUniverse ? <>
+          <p>{t('portfolio.sessionNotice')}</p>
+          <p>{t('portfolio.noUpload')}</p>
+        </> : <>
+          <p>{t('footer.sources', { sources: data?.sources?.join(t('common.and')) || t('common.publicSources') })}</p>
+          <p>{t('footer.disclaimer')}</p>
+        </>}
       </footer>
 
       {selectedStock && <StockChartDialog stock={selectedStock} onClose={() => setSelectedStock(null)} />}
