@@ -364,7 +364,7 @@ test('loads the weekly Zacks report picks with report-date metadata', async () =
 
 test('shows extended and growth market ranks for overlapping Zacks picks', async () => {
   const rows = Array.from({ length: 1_200 }, (_, index) => ({
-    symbol: index === 41 ? 'EXT' : index === 1_000 ? 'GROW' : `S${index}`,
+    symbol: index === 0 ? 'SPX' : index === 41 ? 'EXT' : index === 1_000 ? 'GROW' : `S${index}`,
     name: `Stock ${index}`,
     lastsale: '$10.00',
     volume: '200000',
@@ -395,19 +395,20 @@ test('shows extended and growth market ranks for overlapping Zacks picks', async
   };
   const service = createMarketDataService({
     fetchImpl,
-    parseHoldings: () => [],
+    parseHoldings: () => [{ symbol: 'SPX' }],
     bestStocksService: {
-      getReport: async () => ({ symbols: ['EXT', 'GROW', 'OUT'], reportDate: '2026-07-31' }),
+      getReport: async () => ({ symbols: ['EXT', 'GROW', 'SPX', 'OUT'], reportDate: '2026-07-31' }),
     },
   });
 
   const result = await service.getStocks('zacksBest');
-  const rankLookup = await service.getMarketRanks(['EXT', 'GROW', 'OUT']);
+  const rankLookup = await service.getMarketRanks(['EXT', 'GROW', 'SPX', 'OUT']);
 
   assert.equal(result.stocks.find((stock) => stock.symbol === 'EXT').marketRank, 42);
   assert.equal(result.stocks.find((stock) => stock.symbol === 'GROW').marketRank, 1001);
+  assert.equal(result.stocks.find((stock) => stock.symbol === 'SPX').marketRank, 1);
   assert.equal('marketRank' in result.stocks.find((stock) => stock.symbol === 'OUT'), false);
-  assert.deepEqual(rankLookup.marketRanks, { EXT: 42, GROW: 1001, OUT: null });
+  assert.deepEqual(rankLookup.marketRanks, { EXT: 42, GROW: 1001, SPX: 1, OUT: null });
   assert.equal(requests.filter((url) => url.hostname === 'api.nasdaq.com').length, 1);
   assert.equal(requests.filter((url) => url.hostname === 'www.ssga.com').length, 1);
 });

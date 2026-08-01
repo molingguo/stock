@@ -97,11 +97,22 @@ function rankPublicStocks(rows) {
     .map((stock, index) => ({ ...stock, marketRank: index + 1 }));
 }
 
+function publicSp500RankMap(rows, holdings) {
+  const rowsBySymbol = new Map(rows.map((row) => [normalizeSymbol(row.symbol), row]));
+  const stocks = holdings.map((holding) => {
+    const row = rowsBySymbol.get(normalizeSymbol(holding.symbol));
+    return row ? normalizeNasdaqStock(row, holding) : null;
+  }).filter((stock) => stock && stock.price !== null)
+    .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+  return new Map(stocks.map((stock, index) => [normalizeSymbol(stock.symbol), index + 1]));
+}
+
 function publicMarketRankMap(rows, holdings) {
   const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
   const ranked = rankPublicStocks(rows);
   const ranks = new Map();
 
+  publicSp500RankMap(rows, holdings).forEach((rank, symbol) => ranks.set(symbol, rank));
   ranked.slice(0, 1000)
     .filter((stock) => !sp500Symbols.has(normalizeSymbol(stock.symbol)))
     .forEach((stock) => ranks.set(normalizeSymbol(stock.symbol), stock.marketRank));
