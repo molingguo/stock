@@ -1110,16 +1110,20 @@ function StockList() {
     const symbolsToRefresh = symbols.filter((symbol) => !historyRankLookupRef.current.has(symbol));
     if (!symbolsToRefresh.length) return undefined;
     symbolsToRefresh.forEach((symbol) => historyRankLookupRef.current.add(symbol));
-    let active = true;
     fetchMarketRanks(symbolsToRefresh)
       .then(({ marketRanks, available }) => {
-        if (active && available) setZacksReportHistory((reports) => mergeZacksReportRanks(reports, marketRanks));
+        if (available) {
+          setZacksReportHistory((reports) => mergeZacksReportRanks(reports, marketRanks));
+        } else {
+          symbolsToRefresh.forEach((symbol) => historyRankLookupRef.current.delete(symbol));
+        }
       })
       .catch(() => {
         // Historical ranks are optional; keep the saved weekly positions on lookup failure.
+        symbolsToRefresh.forEach((symbol) => historyRankLookupRef.current.delete(symbol));
       });
-    return () => { active = false; };
-  }, [data?.universe, previousZacksReports]);
+    return undefined;
+  }, [data?.universe, previousZacksReports, refreshVersion]);
 
   const stats = React.useMemo(() => {
     const advancers = stocks.filter((stock) => Number.isFinite(stock.changePercentage) && stock.changePercentage > 0).length;

@@ -436,7 +436,7 @@ function createMarketDataService({
       return { marketRanks, available: true };
     } catch {
       // Keep known cached ranks when the optional rank source is unavailable.
-      return { marketRanks, available: false };
+      return { marketRanks, available: marketRanks.size > 0 };
     }
   }
 
