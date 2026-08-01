@@ -13,11 +13,17 @@ const DEFAULT_CACHE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_STALE_TTL_MS = 24 * 60 * 60 * 1000;
 const QUOTE_BATCH_SIZE = 200;
 const MAX_FAVORITE_SYMBOLS = 100;
+const GROWTH_MIN_RANK = 501;
+const GROWTH_MAX_RANK = 2000;
+const GROWTH_BAND_LIMIT = 200;
+const GROWTH_MIN_PRICE = 5;
+const GROWTH_MIN_VOLUME = 100_000;
 
 const UNIVERSES = {
   sp500: { label: 'S&P 500', sourceKey: 'sp500' },
   popularEtfs: { label: 'Popular ETFs', sourceKey: 'popularEtfs' },
   extendedMarket: { label: 'U.S. Extended Market', sourceKey: 'extendedMarket' },
+  growthCandidates: { label: 'Mid & Small-Cap Growth', sourceKey: 'growthCandidates' },
   zacksBest: { label: 'Zacks 7 Best Stocks', sourceKey: 'zacksBest' },
   favorites: { label: 'Favorites', sourceKey: 'favorites' },
 };
@@ -49,6 +55,38 @@ function asNumber(value) {
 
 function normalizeSymbol(symbol) {
   return String(symbol || '').trim().toUpperCase().replace(/[/-]/g, '.');
+}
+
+function yearRangePosition(stock) {
+  return Number.isFinite(stock.yearLow) && Number.isFinite(stock.yearHigh)
+    && stock.yearHigh > stock.yearLow && Number.isFinite(stock.price)
+    ? (stock.price - stock.yearLow) / (stock.yearHigh - stock.yearLow)
+    : null;
+}
+
+function growthCandidateScore(stock) {
+  const zacksPoints = stock.zacksRank === 1 ? 4 : stock.zacksRank === 2 ? 3 : stock.zacksRank === 3 ? 1 : 0;
+  const fScorePoints = stock.piotroskiScore >= 8 ? 3 : stock.piotroskiScore >= 6 ? 2 : stock.piotroskiScore >= 5 ? 1 : 0;
+  const momentumPosition = yearRangePosition(stock);
+  const momentumPoints = momentumPosition >= 0.8 ? 2 : momentumPosition >= 0.6 ? 1 : 0;
+  return zacksPoints + fScorePoints + momentumPoints;
+}
+
+function selectGrowthCandidates(stocks, sp500Symbols) {
+  const ranked = stocks
+    .filter((stock) => stock.symbol && stock.price !== null && stock.marketCap !== null)
+    .sort((a, b) => b.marketCap - a.marketCap)
+    .map((stock, index) => ({ ...stock, marketRank: index + 1 }))
+    .filter((stock) => (
+      stock.marketRank >= GROWTH_MIN_RANK
+      && stock.marketRank <= GROWTH_MAX_RANK
+      && stock.price >= GROWTH_MIN_PRICE
+      && (stock.volume || 0) >= GROWTH_MIN_VOLUME
+      && !sp500Symbols.has(normalizeSymbol(stock.symbol))
+    ));
+  const midCapBand = ranked.filter((stock) => stock.marketRank <= 1000).slice(0, GROWTH_BAND_LIMIT);
+  const smallCapBand = ranked.filter((stock) => stock.marketRank > 1000).slice(0, GROWTH_BAND_LIMIT);
+  return [...midCapBand, ...smallCapBand];
 }
 
 function createProviderError(status, message) {
@@ -270,6 +308,26 @@ function createMarketDataService({
       const companies = await getResource('fmpSp500', () => requestFmp('/sp500-constituent'));
       return normalizeFmpStocks(companies, await getFmpQuotes(companies.map((company) => company.symbol)));
     }
+    if (sourceKey === 'growthCandidates') {
+      const [companies, holdings] = await Promise.all([
+        requestFmp('/company-screener', {
+          country: 'US', isEtf: false, isFund: false, isActivelyTrading: true,
+          includeAllShareClasses: false, limit: GROWTH_MAX_RANK,
+        }),
+        getResource('fmpSp500', () => requestFmp('/sp500-constituent')),
+      ]);
+      const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
+      const candidates = selectGrowthCandidates(companies.map((company) => ({
+        symbol: company.symbol,
+        name: company.name || company.companyName || company.symbol,
+        sector: company.sector || 'Other',
+        industry: company.subSector || company.industry || '',
+        price: asNumber(company.price),
+        marketCap: asNumber(company.marketCap),
+        volume: asNumber(company.volume),
+      })), sp500Symbols);
+      return normalizeFmpStocks(candidates, await getFmpQuotes(candidates.map((company) => company.symbol)));
+    }
     const [companies, holdings] = await Promise.all([
       requestFmp('/company-screener', {
         country: 'US', isEtf: false, isFund: false, isActivelyTrading: true,
@@ -303,6 +361,12 @@ function createMarketDataService({
         .slice(0, 1000)
         .map((stock, index) => ({ ...stock, marketRank: index + 1 }))
         .filter((stock) => !sp500Symbols.has(normalizeSymbol(stock.symbol)));
+    }
+
+    if (sourceKey === 'growthCandidates') {
+      const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
+      const stocks = rows.filter((row) => row.country === 'United States').map((row) => normalizeNasdaqStock(row));
+      return selectGrowthCandidates(stocks, sp500Symbols);
     }
 
     const rowsBySymbol = new Map(rows.map((row) => [normalizeSymbol(row.symbol), row]));
@@ -416,6 +480,13 @@ function createMarketDataService({
         const normalizedStocks = sourceKey === 'popularEtfs'
           ? stocks.filter((stock) => stock.price !== null)
             .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0) || (b.volume || 0) - (a.volume || 0))
+          : sourceKey === 'growthCandidates'
+            ? stocks.map((stock) => ({ ...stock, growthScore: growthCandidateScore(stock) }))
+              .filter((stock) => stock.growthScore >= 3)
+              .sort((a, b) => b.growthScore - a.growthScore
+                || (a.zacksRank || 99) - (b.zacksRank || 99)
+                || (b.piotroskiScore || -1) - (a.piotroskiScore || -1)
+                || (a.marketRank || Infinity) - (b.marketRank || Infinity))
           : stocks;
         const entry = { stocks: normalizedStocks, ratingsCacheStatus, fetchedAt: now(), ...metadata };
         cache.set(sourceKey, entry);

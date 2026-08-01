@@ -10,6 +10,8 @@ The Popular ETFs view uses a curated, diversified set of widely followed U.S.-li
 
 The U.S. Extended Market view ranks U.S. stocks by market cap, takes the top 1,000, and removes every current S&P 500 constituent so the two stock universes do not overlap.
 
+The Mid & Small-Cap Growth view reuses that same cached Nasdaq screener and SPY membership data. It selects liquid U.S. stocks ranked roughly 501–2,000 by market cap, keeps balanced mid- and small-cap bands, enriches at most 400 candidates in two Zacks batches, and orders them with a transparent 0–9 heuristic score using Zacks rank, the SEC-derived Piotroski F-score, and 52-week price position. This is a research screen rather than an official index or a forecast of future returns.
+
 The 52-week range and company-logo URL use fields included in the existing batched Zacks quote response, so extracting them does not add provider API requests. Visible logos are lazy-loaded from Zacks' static image host and fall back to the ticker's first letter when unavailable.
 
 Selecting a desktop row, company name, or the body of a mobile stock card opens an on-demand TradingView daily chart. ETF dialogs add a Holdings tab with portfolio metrics and the top 50 reported positions from Alpha Vantage. Holdings are fetched only when that tab is opened, deduplicated while in flight, cached in the browser and server for 24 hours, allowed to fall back to a seven-day stale copy, and served through Amplify's CDN cache. The free API is therefore used at most once per opened ETF per day per active cache layer. Yahoo Finance is linked from inside the dialog, while each Zacks-rank badge links directly to that ticker's Zacks quote page; the TradingView widget is not loaded until its tab opens.
@@ -43,6 +45,7 @@ The server is intentionally conservative with provider usage:
 - The weekly Zacks report is checked at most once per day, then its seven quotes and ranks are loaded in one batch.
 - Favorites are loaded in a single batch and reuse the same per-ticker Zacks cache as the other universes.
 - S&P 500 and U.S. Extended Market views share the same cached Nasdaq and State Street source responses.
+- Mid & Small-Cap Growth shares those cached source responses and requests at most two additional Zacks batches for its capped candidate screen.
 - Zacks ranks, forward P/E, and fallback quote fields are requested in sequential batches of at most 200 symbols and cached per ticker for 12 hours, matching the rank's slower update cadence.
 - Successful responses are cached in memory for 15 minutes by default.
 - Concurrent requests share in-flight universe and source requests.
@@ -102,7 +105,7 @@ The repository includes an AWS Amplify Hosting Compute deployment for the Vite f
 
 ## API
 
-`GET /api/stocks?universe=sp500|popularEtfs|extendedMarket|zacksBest`
+`GET /api/stocks?universe=sp500|popularEtfs|extendedMarket|growthCandidates|zacksBest`
 
 `GET /api/stocks?universe=favorites&symbols=AAPL,MSFT`
 

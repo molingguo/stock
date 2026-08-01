@@ -72,6 +72,7 @@ const universeOptions = [
   { value: 'sp500', label: 'S&P 500', description: 'Index constituents' },
   { value: 'popularEtfs', label: 'Popular ETFs', description: 'By current fund assets' },
   { value: 'extendedMarket', label: 'Extended Market', description: 'Top 1,000 beyond S&P 500' },
+  { value: 'growthCandidates', label: 'Mid & Small-Cap Growth', description: 'Ranked research candidates' },
   { value: 'zacksBest', label: '7 Best Stocks', description: 'Weekly 30-day picks' },
   { value: 'favorites', label: 'Favorites', description: 'Saved in this browser' },
   { value: 'portfolio', label: 'Portfolio', description: 'Private, local CSV import' },
@@ -103,6 +104,10 @@ function formatCompactCurrency(value) {
 
 function formatPe(value) {
   return Number.isFinite(value) ? value.toFixed(1) : '—';
+}
+
+function formatGrowthScore(value) {
+  return Number.isFinite(value) ? `${value}/9` : '—';
 }
 
 function formatPercent(value) {
@@ -159,19 +164,19 @@ function escapeCsvCell(value) {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-export function createStockCsv(rows, { isEtf = false, allStocks = rows, locale = DEFAULT_LOCALE } = {}) {
+export function createStockCsv(rows, { isEtf = false, isGrowth = false, allStocks = rows, locale = DEFAULT_LOCALE } = {}) {
   const t = createTranslator(locale);
   const headers = [
     t('csv.rank'), isEtf ? t('csv.fund') : t('csv.ticker'), t('csv.name'), t('csv.price'), t('csv.dayChange'),
     t('csv.zacksRank'), t('csv.zacksRating'), isEtf ? t('csv.fundAssets') : t('csv.marketCap'),
     isEtf ? t('csv.category') : t('csv.sector'),
-    ...(!isEtf ? [t('csv.fScore'), t('csv.pe')] : []),
+    ...(!isEtf ? [t('csv.fScore'), ...(isGrowth ? [t('csv.growthScore')] : []), t('csv.pe')] : []),
     t('csv.yearLow'), t('csv.yearHigh'), t('csv.yearPosition'),
   ];
   const values = rows.map((stock) => [
     stockRank(stock, allStocks), stock.symbol, companyNameForLocale(stock, locale), stock.price, stock.changePercentage,
     stock.zacksRank, stock.zacksRankText, stock.marketCap, stock.sector,
-    ...(!isEtf ? [stock.piotroskiScore, stock.pe] : []),
+    ...(!isEtf ? [stock.piotroskiScore, ...(isGrowth ? [stock.growthScore] : []), stock.pe] : []),
     stock.yearLow, stock.yearHigh,
     Number.isFinite(yearRangePosition(stock)) ? (yearRangePosition(stock) * 100).toFixed(2) : null,
   ]);
@@ -837,7 +842,7 @@ function StatCard({ eyebrow, value, detail, tone = 'default' }) {
   );
 }
 
-function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavorite, favoriteLimitReached }) {
+function StockCard({ stock, rank, isEtf, isGrowth, onOpenChart, isFavorite, onToggleFavorite, favoriteLimitReached }) {
   const { locale, t } = useI18n();
   const displayName = companyNameForLocale(stock, locale);
   return (
@@ -879,6 +884,7 @@ function StockCard({ stock, rank, isEtf, onOpenChart, isFavorite, onToggleFavori
           </div>
           <div><dt>{t(isEtf ? 'column.category' : 'column.sector')}</dt><dd>{translateMarketTerm(stock.sector || 'Other', locale)}</dd></div>
           {!isEtf && <div><dt>{t('card.fScore')}</dt><dd><PiotroskiScore score={stock.piotroskiScore} symbol={stock.symbol} /></dd></div>}
+          {isGrowth && <div><dt>{t('card.growthScore')}</dt><dd>{formatGrowthScore(stock.growthScore)}</dd></div>}
           <div className="stock-card__range">
             <dt>{t('column.yearRange')}</dt>
             <dd><YearRange low={stock.yearLow} high={stock.yearHigh} price={stock.price} /></dd>
@@ -965,6 +971,7 @@ function StockList() {
   const isCompactTable = useMediaLayout('(max-width: 1300px)');
   const isNarrowTable = useMediaLayout('(max-width: 1000px)');
   const isEtfUniverse = universe === 'popularEtfs';
+  const isGrowthUniverse = universe === 'growthCandidates';
   const isBestStocksUniverse = universe === 'zacksBest';
   const isFavoritesUniverse = universe === 'favorites';
   const isPortfolioUniverse = universe === 'portfolio';
@@ -1133,6 +1140,15 @@ function StockList() {
       cellClassName: 'align-center-cell',
       renderCell: ({ row }) => <ZacksRank rank={row.zacksRank} text={row.zacksRankText} symbol={row.symbol} />,
     },
+    ...(isGrowthUniverse ? [{
+      field: 'growthScore',
+      headerName: t('column.growthScore'),
+      description: t('column.growthScoreDescription'),
+      width: 118,
+      type: 'number',
+      cellClassName: 'align-center-cell',
+      valueFormatter: formatGrowthScore,
+    }] : []),
     ...(!isEtfUniverse ? [{
       field: 'piotroskiScore',
       headerName: t('column.fScore'),
@@ -1153,7 +1169,7 @@ function StockList() {
       valueGetter: (_value, row) => yearRangePosition(row),
       renderCell: ({ row }) => <YearRange low={row.yearLow} high={row.yearHigh} price={row.price} />,
     },
-  ], [favoriteLimitReached, favoriteSet, isEtfUniverse, locale, openStockChart, stocks, t, toggleFavorite]);
+  ], [favoriteLimitReached, favoriteSet, isEtfUniverse, isGrowthUniverse, locale, openStockChart, stocks, t, toggleFavorite]);
 
   const selectUniverse = (nextUniverse) => {
     if (nextUniverse === universe) return;
@@ -1168,7 +1184,7 @@ function StockList() {
 
   const exportCurrentTable = () => {
     const orderedStocks = sortStocksForExport(filteredStocks, sortModel, stocks);
-    const csv = createStockCsv(orderedStocks, { isEtf: isEtfUniverse, allStocks: stocks, locale });
+    const csv = createStockCsv(orderedStocks, { isEtf: isEtfUniverse, isGrowth: isGrowthUniverse, allStocks: stocks, locale });
     const universeName = universe.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
     const date = String(data?.asOf || new Date().toISOString()).slice(0, 10);
     downloadCsv(csv, `northstar-${universeName}-${date}.csv`);
@@ -1348,6 +1364,7 @@ function StockList() {
                     stock={stock}
                     rank={stock.marketRank ?? stocks.findIndex((item) => item.symbol === stock.symbol) + 1}
                     isEtf={isEtfUniverse}
+                    isGrowth={isGrowthUniverse}
                     onOpenChart={openStockChart}
                     isFavorite={favoriteSet.has(stock.symbol)}
                     onToggleFavorite={toggleFavorite}
@@ -1422,6 +1439,7 @@ function StockList() {
                       stock={stock}
                       rank={stock.listRank ?? index + 1}
                       isEtf={false}
+                      isGrowth={false}
                       onOpenChart={openStockChart}
                       isFavorite={favoriteSet.has(stock.symbol)}
                       onToggleFavorite={toggleFavorite}

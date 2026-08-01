@@ -221,6 +221,69 @@ test('excludes S&P constituents from the cached top-1000 extended-market view', 
   assert.equal(zacksRequestCount, 4);
 });
 
+test('builds a cached mid and small-cap growth screen from two Zacks batches', async () => {
+  const requests = [];
+  const rows = Array.from({ length: 1_600 }, (_, index) => ({
+    symbol: `G${index}`,
+    name: `Growth ${index}`,
+    lastsale: '$10.00',
+    netchange: '0.25',
+    pctchange: '2.50%',
+    volume: '200000',
+    marketCap: String(2_000_000_000 - index),
+    country: 'United States',
+    sector: 'Technology',
+    industry: 'Software',
+  }));
+  const fetchImpl = async (url) => {
+    requests.push(url.toString());
+    if (url.hostname === 'api.nasdaq.com') return jsonResponse({ data: { rows } });
+    if (url.hostname === 'www.ssga.com') return {
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => Buffer.alloc(0),
+    };
+    if (url.hostname === 'quote-feed.zacks.com') {
+      const symbols = url.searchParams.get('t').split(',');
+      if (symbols.includes('SPX')) {
+        return jsonResponse({
+          SPX: { name: 'S&P 500', last: '7400', percent_net_change: '0.2' },
+          COMPX: { name: 'Nasdaq Composite', last: '25000', percent_net_change: '0.3' },
+        });
+      }
+      return jsonResponse(Object.fromEntries(symbols.map((symbol) => [symbol, {
+        ticker: symbol,
+        last: '10',
+        zacks_rank: '1',
+        zacks_rank_text: 'Strong Buy',
+        source: { sungard: { yrlow: '5', yrhigh: '12' } },
+      }])));
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  };
+  const service = createMarketDataService({
+    fetchImpl,
+    parseHoldings: () => [],
+    piotroskiScoresService: {
+      getScore: () => ({ score: 8, signals: 9 }),
+      getMetadata: () => ({ generatedAt: '2026-07-31T12:00:00.000Z', scoreYear: 2025 }),
+    },
+  });
+
+  const result = await service.getStocks('growthCandidates');
+  const cached = await service.getStocks('growthCandidates');
+
+  assert.equal(result.label, 'Mid & Small-Cap Growth');
+  assert.equal(result.count, 400);
+  assert.ok(result.stocks.some((stock) => stock.marketRank === 501));
+  assert.ok(result.stocks.some((stock) => stock.marketRank === 1001));
+  assert.ok(result.stocks.every((stock) => stock.growthScore >= 3));
+  assert.equal(cached.cacheStatus, 'fresh');
+  assert.equal(requests.filter((request) => request.includes('api.nasdaq.com')).length, 1);
+  assert.equal(requests.filter((request) => request.includes('ssga.com')).length, 1);
+  assert.equal(requests.filter((request) => request.includes('quote-feed.zacks.com')).length, 3);
+});
+
 test('loads popular ETFs from one quote batch and orders them by live fund assets', async () => {
   const requests = [];
   const fetchImpl = async (url) => {

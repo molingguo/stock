@@ -84,12 +84,13 @@ test('loads, filters, and switches stock universes', async () => {
       };
     }
     const isFavorites = url.includes('universe=favorites');
+    const isGrowth = url.includes('universe=growthCandidates');
     const favoriteSymbols = new URL(url, 'https://example.test').searchParams.get('symbols')?.split(',') || [];
     return {
       ok: true,
       json: async () => ({
-      universe: isFavorites ? 'favorites' : url.includes('popularEtfs') ? 'popularEtfs' : url.includes('extendedMarket') ? 'extendedMarket' : url.includes('zacksBest') ? 'zacksBest' : 'sp500',
-      label: isFavorites ? 'Favorites' : url.includes('popularEtfs') ? 'Popular ETFs' : url.includes('extendedMarket') ? 'U.S. Extended Market' : url.includes('zacksBest') ? 'Zacks 7 Best Stocks' : 'S&P 500',
+      universe: isFavorites ? 'favorites' : url.includes('popularEtfs') ? 'popularEtfs' : url.includes('extendedMarket') ? 'extendedMarket' : isGrowth ? 'growthCandidates' : url.includes('zacksBest') ? 'zacksBest' : 'sp500',
+      label: isFavorites ? 'Favorites' : url.includes('popularEtfs') ? 'Popular ETFs' : url.includes('extendedMarket') ? 'U.S. Extended Market' : isGrowth ? 'Mid & Small-Cap Growth' : url.includes('zacksBest') ? 'Zacks 7 Best Stocks' : 'S&P 500',
       asOf: '2026-07-25T16:00:00.000Z',
       reportDate: url.includes('zacksBest') ? '2026-07-24' : undefined,
       resolvedReportUrl: url.includes('zacksBest') ? 'https://www.zacks.com/example?edition=20260724abc' : undefined,
@@ -106,6 +107,8 @@ test('loads, filters, and switches stock universes', async () => {
         ? [stock, unratedStock].filter((item) => favoriteSymbols.includes(item.symbol))
         : url.includes('extendedMarket')
         ? [{ ...stock, marketRank: 42 }, { ...unratedStock, marketRank: 57 }]
+        : isGrowth
+        ? [{ ...stock, symbol: 'GROW', name: 'Growth Company', marketRank: 512, growthScore: 8 }, { ...unratedStock, symbol: 'MID', marketRank: 1008, growthScore: 5 }]
         : url.includes('popularEtfs')
         ? [etfStock]
         : [stock, unratedStock],
@@ -180,6 +183,11 @@ test('loads, filters, and switches stock universes', async () => {
   expect(await screen.findByRole('heading', { name: 'U.S. Extended Market' })).toBeInTheDocument();
   expect(screen.getByText('42')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=extendedMarket');
+
+  fireEvent.click(screen.getByRole('button', { name: /mid & small-cap growth/i }));
+  expect(await screen.findByRole('heading', { name: 'Mid & Small-Cap Growth Candidates' })).toBeInTheDocument();
+  expect(screen.getByText('8/9')).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=growthCandidates');
 
   fireEvent.click(screen.getByRole('button', { name: /7 best stocks/i }));
   expect(await screen.findByRole('heading', { name: 'Zacks 7 Best Stocks' })).toBeInTheDocument();
