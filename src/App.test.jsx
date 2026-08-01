@@ -56,7 +56,6 @@ test('loads, filters, and switches stock universes', async () => {
       symbol: index === 0 ? 'IBM' : `OLD${index}`,
       name: index === 0 ? 'International Business Machines' : `Previous company ${index}`,
       listRank: index + 1,
-      ...(index === 0 ? { marketRank: 812 } : {}),
     })),
   }]));
   window.matchMedia = vi.fn(() => ({
@@ -83,6 +82,9 @@ test('loads, filters, and switches stock universes', async () => {
           ],
         }),
       };
+    }
+    if (url.includes('/api/market-ranks')) {
+      return { ok: true, json: async () => ({ marketRanks: { IBM: 812 } }) };
     }
     const isFavorites = url.includes('universe=favorites');
     const isGrowth = url.includes('universe=growthCandidates');
@@ -205,7 +207,7 @@ test('loads, filters, and switches stock universes', async () => {
   expect(screen.getByText('IBM')).toBeInTheDocument();
   const previousIbmCard = screen.getAllByText('IBM').map((element) => element.closest('article.stock-card')).find(Boolean);
   const previousOldCard = screen.getAllByText('OLD1').map((element) => element.closest('article.stock-card')).find(Boolean);
-  expect(previousIbmCard.querySelector('.stock-card__lead .rank')).toHaveTextContent('812');
+  expect(await within(previousIbmCard).findByText('812')).toBeInTheDocument();
   expect(previousIbmCard.querySelector('.stock-card__lead .rank')).toHaveClass('is-market-rank');
   expect(previousOldCard.querySelector('.stock-card__lead .rank')).toHaveTextContent('2');
   expect(previousOldCard.querySelector('.stock-card__lead .rank')).toHaveClass('is-fallback');

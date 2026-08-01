@@ -45,6 +45,29 @@ function createApp({
     }
   });
 
+  app.get('/api/market-ranks', async (request, response) => {
+    try {
+      const rawSymbols = request.query.symbols;
+      if (Array.isArray(rawSymbols)) {
+        const error = new Error('Market rank symbols require one comma-separated query value.');
+        error.status = 400;
+        throw error;
+      }
+      const symbols = typeof rawSymbols === 'string' && rawSymbols
+        ? rawSymbols.split(',')
+        : [];
+      const data = await marketData.getMarketRanks(symbols);
+      response.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=3600');
+      response.json(data);
+    } catch (error) {
+      const status = Number.isInteger(error.status) ? error.status : 500;
+      response.status(status).json({
+        error: status >= 500 ? 'Market ranks are temporarily unavailable.' : error.message,
+        detail: error.message,
+      });
+    }
+  });
+
   app.get('/api/etf-holdings', async (request, response) => {
     try {
       if (Array.isArray(request.query.symbol)) {

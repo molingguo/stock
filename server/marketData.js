@@ -415,23 +415,34 @@ function createMarketDataService({
     return ranks;
   }
 
+  async function resolveMarketRanks() {
+    const marketRanks = cachedUniverseMarketRanks();
+    if (provider !== 'public') {
+      return { marketRanks, available: marketRanks.size > 0 };
+    }
+    if (hasFreshUniverse('extendedMarket') && hasFreshUniverse('growthCandidates')) {
+      return { marketRanks, available: true };
+    }
+
+    try {
+      const [rows, holdings] = await Promise.all([
+        getResource('nasdaq', requestNasdaq),
+        getResource('spyHoldings', requestSpyHoldings),
+      ]);
+      const publicRanks = publicMarketRankMap(rows, holdings);
+      publicRanks.forEach((rank, symbol) => {
+        if (!marketRanks.has(symbol)) marketRanks.set(symbol, rank);
+      });
+      return { marketRanks, available: true };
+    } catch {
+      // Keep known cached ranks when the optional rank source is unavailable.
+      return { marketRanks, available: false };
+    }
+  }
+
   async function loadZacksBestUniverse() {
     const report = await zacksBestStocks.getReport();
-    let marketRanks = cachedUniverseMarketRanks();
-    if (provider === 'public' && !(hasFreshUniverse('extendedMarket') && hasFreshUniverse('growthCandidates'))) {
-      try {
-        const [rows, holdings] = await Promise.all([
-          getResource('nasdaq', requestNasdaq),
-          getResource('spyHoldings', requestSpyHoldings),
-        ]);
-        const publicRanks = publicMarketRankMap(rows, holdings);
-        publicRanks.forEach((rank, symbol) => {
-          if (!marketRanks.has(symbol)) marketRanks.set(symbol, rank);
-        });
-      } catch {
-        // Zacks picks remain available with their weekly-list fallback rank if the optional rank source fails.
-      }
-    }
+    const { marketRanks } = await resolveMarketRanks();
     return {
       stocks: createSymbolRows(report.symbols).map((stock) => {
         const marketRank = marketRanks.get(normalizeSymbol(stock.symbol));
@@ -586,7 +597,24 @@ function createMarketDataService({
     return buildResponse('favorites', entry, 'refreshed');
   }
 
-  return { getFavoriteStocks, getStocks };
+  async function getMarketRanks(rawSymbols = []) {
+    if (!Array.isArray(rawSymbols)) throw createProviderError(400, 'Market rank symbols must be a list.');
+    if (rawSymbols.length > MAX_FAVORITE_SYMBOLS) {
+      throw createProviderError(400, `Market rank lookups are limited to ${MAX_FAVORITE_SYMBOLS} symbols.`);
+    }
+    const symbols = [...new Set(rawSymbols.map((symbol) => normalizeSymbol(symbol)).filter(Boolean))];
+    if (symbols.some((symbol) => !/^[A-Z][A-Z0-9.]{0,9}$/.test(symbol))) {
+      throw createProviderError(400, 'One or more market rank symbols are invalid.');
+    }
+
+    const { marketRanks, available } = await resolveMarketRanks();
+    return {
+      marketRanks: Object.fromEntries(symbols.map((symbol) => [symbol, marketRanks.get(symbol) ?? null])),
+      available,
+    };
+  }
+
+  return { getFavoriteStocks, getMarketRanks, getStocks };
 }
 
 module.exports = {

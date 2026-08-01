@@ -402,10 +402,12 @@ test('shows extended and growth market ranks for overlapping Zacks picks', async
   });
 
   const result = await service.getStocks('zacksBest');
+  const rankLookup = await service.getMarketRanks(['EXT', 'GROW', 'OUT']);
 
   assert.equal(result.stocks.find((stock) => stock.symbol === 'EXT').marketRank, 42);
   assert.equal(result.stocks.find((stock) => stock.symbol === 'GROW').marketRank, 1001);
   assert.equal('marketRank' in result.stocks.find((stock) => stock.symbol === 'OUT'), false);
+  assert.deepEqual(rankLookup.marketRanks, { EXT: 42, GROW: 1001, OUT: null });
   assert.equal(requests.filter((url) => url.hostname === 'api.nasdaq.com').length, 1);
   assert.equal(requests.filter((url) => url.hostname === 'www.ssga.com').length, 1);
 });

@@ -386,6 +386,35 @@ function archiveZacksReport(payload, existingReports) {
   return next;
 }
 
+function mergeZacksReportRanks(reports, marketRanks) {
+  let changed = false;
+  const next = reports.map((report) => ({
+    ...report,
+    stocks: report.stocks.map((stock) => {
+      const symbol = stock.symbol.toUpperCase();
+      if (!Object.prototype.hasOwnProperty.call(marketRanks, symbol)) return stock;
+      const marketRank = marketRanks[symbol];
+      if (Number.isInteger(marketRank)) {
+        if (stock.marketRank === marketRank) return stock;
+        changed = true;
+        return { ...stock, marketRank };
+      }
+      if (!Number.isInteger(stock.marketRank)) return stock;
+      changed = true;
+      const { marketRank: _marketRank, ...withoutMarketRank } = stock;
+      return withoutMarketRank;
+    }),
+  }));
+  if (!changed) return reports;
+
+  try {
+    window.localStorage.setItem(ZACKS_REPORT_HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    // Keep the in-memory update when storage is disabled or full.
+  }
+  return next;
+}
+
 async function fetchUniverse(universe, { force = false, favoriteSymbols = [] } = {}) {
   const params = new URLSearchParams({ universe });
   if (universe === 'favorites' && favoriteSymbols.length) params.set('symbols', favoriteSymbols.join(','));
@@ -407,6 +436,14 @@ async function fetchUniverse(universe, { force = false, favoriteSymbols = [] } =
 
   pendingRequests.set(requestUrl, pending);
   return pending;
+}
+
+async function fetchMarketRanks(symbols) {
+  const params = new URLSearchParams({ symbols: symbols.join(',') });
+  const response = await fetch(`/api/market-ranks?${params.toString()}`);
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.detail || payload.error || 'Unable to refresh market ranks.');
+  return { marketRanks: payload.marketRanks || {}, available: payload.available !== false };
 }
 
 function BrandMark() {
@@ -967,6 +1004,7 @@ function StockList() {
   const [selectedStock, setSelectedStock] = React.useState(null);
   const [sortModel, setSortModel] = React.useState([]);
   const [portfolioAccounts, setPortfolioAccounts] = React.useState([]);
+  const historyRankLookupRef = React.useRef(new Set());
   const isMobile = useMediaLayout('(max-width: 700px)');
   const isCompactTable = useMediaLayout('(max-width: 1300px)');
   const isNarrowTable = useMediaLayout('(max-width: 1000px)');
@@ -1065,6 +1103,23 @@ function StockList() {
     () => zacksReportHistory.filter((report) => report.reportDate !== data?.reportDate).slice(0, MAX_ZACKS_REPORTS - 1),
     [data?.reportDate, zacksReportHistory]
   );
+
+  React.useEffect(() => {
+    if (data?.universe !== 'zacksBest' || !previousZacksReports.length) return undefined;
+    const symbols = [...new Set(previousZacksReports.flatMap((report) => report.stocks.map((stock) => stock.symbol.toUpperCase())))];
+    const symbolsToRefresh = symbols.filter((symbol) => !historyRankLookupRef.current.has(symbol));
+    if (!symbolsToRefresh.length) return undefined;
+    symbolsToRefresh.forEach((symbol) => historyRankLookupRef.current.add(symbol));
+    let active = true;
+    fetchMarketRanks(symbolsToRefresh)
+      .then(({ marketRanks, available }) => {
+        if (active && available) setZacksReportHistory((reports) => mergeZacksReportRanks(reports, marketRanks));
+      })
+      .catch(() => {
+        // Historical ranks are optional; keep the saved weekly positions on lookup failure.
+      });
+    return () => { active = false; };
+  }, [data?.universe, previousZacksReports]);
 
   const stats = React.useMemo(() => {
     const advancers = stocks.filter((stock) => Number.isFinite(stock.changePercentage) && stock.changePercentage > 0).length;
