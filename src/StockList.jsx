@@ -1362,7 +1362,7 @@ function StockList() {
                   <StockCard
                     key={stock.symbol}
                     stock={stock}
-                    rank={stock.marketRank ?? stocks.findIndex((item) => item.symbol === stock.symbol) + 1}
+                    rank={stockRank(stock, stocks)}
                     isEtf={isEtfUniverse}
                     isGrowth={isGrowthUniverse}
                     onOpenChart={openStockChart}

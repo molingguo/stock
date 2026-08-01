@@ -111,6 +111,8 @@ test('loads, filters, and switches stock universes', async () => {
         ? [{ ...stock, symbol: 'GROW', name: 'Growth Company', marketRank: 512, growthScore: 8 }, { ...unratedStock, symbol: 'MID', marketRank: 1008, growthScore: 5 }]
         : url.includes('popularEtfs')
         ? [etfStock]
+        : url.includes('zacksBest')
+        ? [{ ...stock, marketRank: 512 }, unratedStock]
         : [stock, unratedStock],
       }),
     };
@@ -192,6 +194,7 @@ test('loads, filters, and switches stock universes', async () => {
   fireEvent.click(screen.getByRole('button', { name: /7 best stocks/i }));
   expect(await screen.findByRole('heading', { name: 'Zacks 7 Best Stocks' })).toBeInTheDocument();
   expect(screen.getByText('Report updated Jul 24, 2026')).toBeInTheDocument();
+  expect(screen.getByText('512')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Previous 7 Best Stocks' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Jul 17, 2026' })).toBeInTheDocument();
   expect(screen.getByText('IBM')).toBeInTheDocument();

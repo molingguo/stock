@@ -362,6 +362,54 @@ test('loads the weekly Zacks report picks with report-date metadata', async () =
   assert.match(result.resolvedReportUrl, /edition=20260724/);
 });
 
+test('shows extended and growth market ranks for overlapping Zacks picks', async () => {
+  const rows = Array.from({ length: 1_200 }, (_, index) => ({
+    symbol: index === 41 ? 'EXT' : index === 1_000 ? 'GROW' : `S${index}`,
+    name: `Stock ${index}`,
+    lastsale: '$10.00',
+    volume: '200000',
+    marketCap: String(2_000_000_000 - index),
+    country: 'United States',
+    sector: 'Technology',
+    industry: 'Software',
+  }));
+  const requests = [];
+  const fetchImpl = async (url) => {
+    requests.push(url);
+    if (url.hostname === 'api.nasdaq.com') return jsonResponse({ data: { rows } });
+    if (url.hostname === 'www.ssga.com') return {
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => Buffer.alloc(0),
+    };
+    if (url.hostname === 'quote-feed.zacks.com') {
+      const symbols = url.searchParams.get('t').split(',');
+      return jsonResponse(Object.fromEntries(symbols.map((symbol) => [symbol, {
+        name: `Company ${symbol}`,
+        last: '10',
+        zacks_rank: '1',
+        zacks_rank_text: 'Strong Buy',
+      }])));
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  };
+  const service = createMarketDataService({
+    fetchImpl,
+    parseHoldings: () => [],
+    bestStocksService: {
+      getReport: async () => ({ symbols: ['EXT', 'GROW', 'OUT'], reportDate: '2026-07-31' }),
+    },
+  });
+
+  const result = await service.getStocks('zacksBest');
+
+  assert.equal(result.stocks.find((stock) => stock.symbol === 'EXT').marketRank, 42);
+  assert.equal(result.stocks.find((stock) => stock.symbol === 'GROW').marketRank, 1001);
+  assert.equal('marketRank' in result.stocks.find((stock) => stock.symbol === 'OUT'), false);
+  assert.equal(requests.filter((url) => url.hostname === 'api.nasdaq.com').length, 1);
+  assert.equal(requests.filter((url) => url.hostname === 'www.ssga.com').length, 1);
+});
+
 test('loads a validated favorites list through one cached bulk quote request', async () => {
   const requests = [];
   const fetchImpl = async (url) => {

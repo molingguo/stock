@@ -89,6 +89,28 @@ function selectGrowthCandidates(stocks, sp500Symbols) {
   return [...midCapBand, ...smallCapBand];
 }
 
+function rankPublicStocks(rows) {
+  return rows.filter((row) => row.country === 'United States')
+    .map((row) => normalizeNasdaqStock(row))
+    .filter((stock) => stock.symbol && stock.price !== null && stock.marketCap !== null)
+    .sort((a, b) => b.marketCap - a.marketCap)
+    .map((stock, index) => ({ ...stock, marketRank: index + 1 }));
+}
+
+function publicMarketRankMap(rows, holdings) {
+  const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
+  const ranked = rankPublicStocks(rows);
+  const ranks = new Map();
+
+  ranked.slice(0, 1000)
+    .filter((stock) => !sp500Symbols.has(normalizeSymbol(stock.symbol)))
+    .forEach((stock) => ranks.set(normalizeSymbol(stock.symbol), stock.marketRank));
+  selectGrowthCandidates(ranked, sp500Symbols)
+    .forEach((stock) => ranks.set(normalizeSymbol(stock.symbol), stock.marketRank));
+
+  return ranks;
+}
+
 function createProviderError(status, message) {
   const error = new Error(message);
   error.status = status;
@@ -354,18 +376,14 @@ function createMarketDataService({
     ]);
     if (sourceKey === 'extendedMarket') {
       const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
-      return rows.filter((row) => row.country === 'United States')
-        .map((row) => normalizeNasdaqStock(row))
-        .filter((stock) => stock.symbol && stock.price !== null && stock.marketCap !== null)
-        .sort((a, b) => b.marketCap - a.marketCap)
+      return rankPublicStocks(rows)
         .slice(0, 1000)
-        .map((stock, index) => ({ ...stock, marketRank: index + 1 }))
         .filter((stock) => !sp500Symbols.has(normalizeSymbol(stock.symbol)));
     }
 
     if (sourceKey === 'growthCandidates') {
       const sp500Symbols = new Set(holdings.map((holding) => normalizeSymbol(holding.symbol)));
-      const stocks = rows.filter((row) => row.country === 'United States').map((row) => normalizeNasdaqStock(row));
+      const stocks = rankPublicStocks(rows);
       return selectGrowthCandidates(stocks, sp500Symbols);
     }
 
@@ -382,10 +400,43 @@ function createMarketDataService({
     return stocks;
   }
 
+  function hasFreshUniverse(sourceKey) {
+    const entry = cache.get(sourceKey);
+    return Boolean(entry && now() - entry.fetchedAt < cacheTtlMs);
+  }
+
+  function cachedUniverseMarketRanks() {
+    const ranks = new Map();
+    for (const sourceKey of ['extendedMarket', 'growthCandidates']) {
+      cache.get(sourceKey)?.stocks.forEach((stock) => {
+        if (stock.marketRank) ranks.set(normalizeSymbol(stock.symbol), stock.marketRank);
+      });
+    }
+    return ranks;
+  }
+
   async function loadZacksBestUniverse() {
     const report = await zacksBestStocks.getReport();
+    let marketRanks = cachedUniverseMarketRanks();
+    if (provider === 'public' && !(hasFreshUniverse('extendedMarket') && hasFreshUniverse('growthCandidates'))) {
+      try {
+        const [rows, holdings] = await Promise.all([
+          getResource('nasdaq', requestNasdaq),
+          getResource('spyHoldings', requestSpyHoldings),
+        ]);
+        const publicRanks = publicMarketRankMap(rows, holdings);
+        publicRanks.forEach((rank, symbol) => {
+          if (!marketRanks.has(symbol)) marketRanks.set(symbol, rank);
+        });
+      } catch {
+        // Zacks picks remain available with their weekly-list fallback rank if the optional rank source fails.
+      }
+    }
     return {
-      stocks: createSymbolRows(report.symbols),
+      stocks: createSymbolRows(report.symbols).map((stock) => {
+        const marketRank = marketRanks.get(normalizeSymbol(stock.symbol));
+        return marketRank ? { ...stock, marketRank } : stock;
+      }),
       reportDate: report.reportDate,
       reportUrl: report.reportUrl,
       resolvedReportUrl: report.resolvedReportUrl,
