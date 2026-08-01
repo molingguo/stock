@@ -842,7 +842,7 @@ function StatCard({ eyebrow, value, detail, tone = 'default' }) {
   );
 }
 
-function StockCard({ stock, rank, isEtf, isGrowth, onOpenChart, isFavorite, onToggleFavorite, favoriteLimitReached }) {
+function StockCard({ stock, rank, isFallbackRank, isEtf, isGrowth, onOpenChart, isFavorite, onToggleFavorite, favoriteLimitReached }) {
   const { locale, t } = useI18n();
   const displayName = companyNameForLocale(stock, locale);
   return (
@@ -854,7 +854,7 @@ function StockCard({ stock, rank, isEtf, isGrowth, onOpenChart, isFavorite, onTo
         aria-label={t('chart.open', { symbol: stock.symbol })}
       />
         <div className="stock-card__lead">
-          <span className="rank">{rank}</span>
+          <span className={`rank${isFallbackRank ? ' is-fallback' : ''}${Number.isInteger(stock.marketRank) ? ' is-market-rank' : ''}`}>{rank}</span>
           <FavoriteButton
             symbol={stock.symbol}
             isFavorite={isFavorite}
@@ -1091,6 +1091,10 @@ function StockList() {
       type: 'number',
       sortable: false,
       valueGetter: (_value, row) => stockRank(row, stocks),
+      renderCell: ({ row }) => {
+        const isFallbackRank = isBestStocksUniverse && !Number.isInteger(row.marketRank);
+        return <span className={`rank-cell${isFallbackRank ? ' is-fallback' : ''}${Number.isInteger(row.marketRank) ? ' is-market-rank' : ''}`}>{stockRank(row, stocks)}</span>;
+      },
     },
     {
       field: 'symbol',
@@ -1363,6 +1367,7 @@ function StockList() {
                     key={stock.symbol}
                     stock={stock}
                     rank={stockRank(stock, stocks)}
+                    isFallbackRank={isBestStocksUniverse && !Number.isInteger(stock.marketRank)}
                     isEtf={isEtfUniverse}
                     isGrowth={isGrowthUniverse}
                     onOpenChart={openStockChart}
@@ -1438,6 +1443,7 @@ function StockList() {
                       key={stock.symbol}
                       stock={stock}
                       rank={stock.listRank ?? index + 1}
+                      isFallbackRank={!Number.isInteger(stock.marketRank)}
                       isEtf={false}
                       isGrowth={false}
                       onOpenChart={openStockChart}

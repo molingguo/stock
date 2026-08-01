@@ -195,6 +195,10 @@ test('loads, filters, and switches stock universes', async () => {
   expect(await screen.findByRole('heading', { name: 'Zacks 7 Best Stocks' })).toBeInTheDocument();
   expect(screen.getByText('Report updated Jul 24, 2026')).toBeInTheDocument();
   expect(screen.getByText('512')).toBeInTheDocument();
+  const zacksAaplCard = screen.getAllByText('AAPL').map((element) => element.closest('article.stock-card')).find(Boolean);
+  const zacksMsftCard = screen.getAllByText('MSFT').map((element) => element.closest('article.stock-card')).find(Boolean);
+  expect(zacksAaplCard.querySelector('.stock-card__lead .rank')).toHaveClass('is-market-rank');
+  expect(zacksMsftCard.querySelector('.stock-card__lead .rank')).toHaveClass('is-fallback');
   expect(screen.getByRole('heading', { name: 'Previous 7 Best Stocks' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Jul 17, 2026' })).toBeInTheDocument();
   expect(screen.getByText('IBM')).toBeInTheDocument();
