@@ -259,9 +259,10 @@ test('restores the selected universe from the URL', async () => {
   expect(window.location.search).toBe('?universe=zacksBest');
 });
 
-test('imports a Fidelity portfolio locally and keeps normalized holdings in session memory', async () => {
+test('imports a Fidelity portfolio locally and restores normalized holdings after refresh', async () => {
   window.history.replaceState({}, '', '/');
   window.localStorage.clear();
+  window.sessionStorage.clear();
   window.matchMedia = vi.fn(() => ({
     matches: false,
     addEventListener: vi.fn(),
@@ -298,7 +299,7 @@ test('imports a Fidelity portfolio locally and keeps normalized holdings in sess
     terminate() {}
   };
 
-  render(<App />);
+  const { unmount } = render(<App />);
   await screen.findByRole('heading', { name: /see the market/i });
   const callsBeforePortfolio = global.fetch.mock.calls.length;
   fireEvent.click(screen.getByRole('button', { name: /^Portfolio/ }));
@@ -328,6 +329,11 @@ test('imports a Fidelity portfolio locally and keeps normalized holdings in sess
 
   fireEvent.click(screen.getByRole('button', { name: /^S&P 500/ }));
   fireEvent.click(screen.getByRole('button', { name: /^Portfolio/ }));
+  expect(await screen.findByRole('heading', { name: 'Combined Portfolio' })).toBeInTheDocument();
+  expect(JSON.parse(window.sessionStorage.getItem('northstar:portfolio-accounts:v1'))).toHaveLength(1);
+
+  unmount();
+  render(<App />);
   expect(await screen.findByRole('heading', { name: 'Combined Portfolio' })).toBeInTheDocument();
 }, 15_000);
 

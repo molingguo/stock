@@ -23,6 +23,7 @@ const ETF_HOLDINGS_ERROR_TTL_MS = 5 * 60 * 1000;
 const ETF_HOLDINGS_CACHE_KEY_PREFIX = 'northstar:etf-holdings:v1:';
 const ZACKS_REPORT_HISTORY_KEY = 'northstar:zacks-best-history:v1';
 const FAVORITE_SYMBOLS_KEY = 'northstar:favorite-symbols:v1';
+const PORTFOLIO_SESSION_KEY = 'northstar:portfolio-accounts:v1';
 const MAX_ZACKS_REPORTS = 8;
 const MAX_FAVORITES = 100;
 const responseCache = new Map();
@@ -30,6 +31,30 @@ const pendingRequests = new Map();
 const etfHoldingsResponseCache = new Map();
 const pendingEtfHoldingsRequests = new Map();
 const etfHoldingsErrorCache = new Map();
+
+function loadPortfolioAccounts() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const storage = window.sessionStorage;
+    if (!storage) return [];
+    const parsed = JSON.parse(storage.getItem(PORTFOLIO_SESSION_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((account) => (
+      account && typeof account.id === 'string' && typeof account.broker === 'string'
+      && Array.isArray(account.positions) && account.totals && typeof account.totals === 'object'
+    ));
+  } catch {
+    return [];
+  }
+}
+
+function savePortfolioAccounts(accounts) {
+  try {
+    window.sessionStorage.setItem(PORTFOLIO_SESSION_KEY, JSON.stringify(accounts));
+  } catch {
+    // Keep the in-memory portfolio when session storage is disabled or full.
+  }
+}
 
 const I18nContext = React.createContext({
   locale: DEFAULT_LOCALE,
@@ -1019,7 +1044,7 @@ function StockList() {
   const [favoriteSymbols, setFavoriteSymbols] = React.useState(loadFavoriteSymbols);
   const [selectedStock, setSelectedStock] = React.useState(null);
   const [sortModel, setSortModel] = React.useState([]);
-  const [portfolioAccounts, setPortfolioAccounts] = React.useState([]);
+  const [portfolioAccounts, setPortfolioAccounts] = React.useState(loadPortfolioAccounts);
   const historyRankLookupRef = React.useRef(new Set());
   const universeRef = React.useRef(universe);
   const isMobile = useMediaLayout('(max-width: 700px)');
@@ -1043,6 +1068,10 @@ function StockList() {
     setSortModel([]);
     setRefreshVersion(0);
   }, []);
+
+  React.useEffect(() => {
+    savePortfolioAccounts(portfolioAccounts);
+  }, [portfolioAccounts]);
 
   const openStockChart = React.useCallback((stock) => setSelectedStock(stock), []);
   const openRowChart = React.useCallback(({ row }, event) => {
