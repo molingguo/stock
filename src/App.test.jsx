@@ -56,6 +56,7 @@ test('loads, filters, and switches stock universes', async () => {
       symbol: index === 0 ? 'IBM' : `OLD${index}`,
       name: index === 0 ? 'International Business Machines' : `Previous company ${index}`,
       listRank: index + 1,
+      ...(index === 0 ? { marketRank: 812 } : {}),
     })),
   }]));
   window.matchMedia = vi.fn(() => ({
@@ -202,6 +203,12 @@ test('loads, filters, and switches stock universes', async () => {
   expect(screen.getByRole('heading', { name: 'Previous 7 Best Stocks' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Jul 17, 2026' })).toBeInTheDocument();
   expect(screen.getByText('IBM')).toBeInTheDocument();
+  const previousIbmCard = screen.getAllByText('IBM').map((element) => element.closest('article.stock-card')).find(Boolean);
+  const previousOldCard = screen.getAllByText('OLD1').map((element) => element.closest('article.stock-card')).find(Boolean);
+  expect(previousIbmCard.querySelector('.stock-card__lead .rank')).toHaveTextContent('812');
+  expect(previousIbmCard.querySelector('.stock-card__lead .rank')).toHaveClass('is-market-rank');
+  expect(previousOldCard.querySelector('.stock-card__lead .rank')).toHaveTextContent('2');
+  expect(previousOldCard.querySelector('.stock-card__lead .rank')).toHaveClass('is-fallback');
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=zacksBest');
 
   fireEvent.click(screen.getByRole('button', { name: /^Favorites/ }));

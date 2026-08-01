@@ -1442,7 +1442,7 @@ function StockList() {
                     <StockCard
                       key={stock.symbol}
                       stock={stock}
-                      rank={stock.listRank ?? index + 1}
+                      rank={stockRank(stock, report.stocks)}
                       isFallbackRank={!Number.isInteger(stock.marketRank)}
                       isEtf={false}
                       isGrowth={false}
