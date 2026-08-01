@@ -169,6 +169,7 @@ test('loads, filters, and switches stock universes', async () => {
 
   fireEvent.click(screen.getByRole('button', { name: /popular etfs/i }));
   expect(await screen.findByRole('heading', { name: 'Popular ETFs' })).toBeInTheDocument();
+  expect(window.location.search).toBe('?universe=popularEtfs');
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=popularEtfs');
   fireEvent.click(screen.getByRole('button', { name: 'Open SPY chart from company name' }));
   expect(screen.getByRole('dialog', { name: 'SPY details' })).toBeInTheDocument();
@@ -186,16 +187,19 @@ test('loads, filters, and switches stock universes', async () => {
 
   fireEvent.click(screen.getByRole('button', { name: /extended market/i }));
   expect(await screen.findByRole('heading', { name: 'U.S. Extended Market' })).toBeInTheDocument();
+  expect(window.location.search).toBe('?universe=extendedMarket');
   expect(screen.getByText('42')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=extendedMarket');
 
   fireEvent.click(screen.getByRole('button', { name: /mid & small-cap growth/i }));
   expect(await screen.findByRole('heading', { name: 'Mid & Small-Cap Growth Candidates' })).toBeInTheDocument();
+  expect(window.location.search).toBe('?universe=growthCandidates');
   expect(screen.getByText('8/9')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=growthCandidates');
 
   fireEvent.click(screen.getByRole('button', { name: /7 best stocks/i }));
   expect(await screen.findByRole('heading', { name: 'Zacks 7 Best Stocks' })).toBeInTheDocument();
+  expect(window.location.search).toBe('?universe=zacksBest');
   expect(screen.getByText('Report updated Jul 24, 2026')).toBeInTheDocument();
   expect(screen.getByText('512')).toBeInTheDocument();
   const zacksAaplCard = screen.getAllByText('AAPL').map((element) => element.closest('article.stock-card')).find(Boolean);
@@ -215,6 +219,7 @@ test('loads, filters, and switches stock universes', async () => {
 
   fireEvent.click(screen.getByRole('button', { name: /^Favorites/ }));
   expect(await screen.findByRole('heading', { name: 'Favorites' })).toBeInTheDocument();
+  expect(window.location.search).toBe('?universe=favorites');
   expect(screen.getByText('Symbols saved only in this browser')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith('/api/stocks?universe=favorites&symbols=AAPL');
   fireEvent.click(screen.getByRole('button', { name: 'Remove AAPL from favorites' }));
@@ -226,6 +231,32 @@ test('uses exact TradingView exchange prefixes for ETF charts', () => {
   expect(tradingViewSymbol(etfStock)).toBe('AMEX:SPY');
   expect(tradingViewSymbol({ ...etfStock, symbol: 'QQQ', exchange: '' })).toBe('NASDAQ:QQQ');
   expect(tradingViewSymbol({ ...etfStock, symbol: 'FBTC', exchange: '' })).toBe('CBOE:FBTC');
+});
+
+test('restores the selected universe from the URL', async () => {
+  window.history.replaceState({}, '', '/?universe=zacksBest');
+  window.localStorage.clear();
+  window.matchMedia = vi.fn(() => ({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+  global.fetch = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      universe: 'zacksBest',
+      label: 'Zacks 7 Best Stocks',
+      stocks: Array.from({ length: 7 }, (_, index) => ({ symbol: `Z${index}`, name: `Zacks ${index}` })),
+      reportDate: '2026-08-01',
+      marketIndexes: {},
+      sources: ['Zacks'],
+    }),
+  }));
+
+  render(<App />);
+
+  expect(await screen.findByRole('heading', { name: 'Zacks 7 Best Stocks' })).toBeInTheDocument();
+  expect(window.location.search).toBe('?universe=zacksBest');
 });
 
 test('imports a Fidelity portfolio locally and keeps normalized holdings in session memory', async () => {

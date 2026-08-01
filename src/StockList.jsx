@@ -78,6 +78,22 @@ const universeOptions = [
   { value: 'portfolio', label: 'Portfolio', description: 'Private, local CSV import' },
 ];
 
+const universeValues = new Set(universeOptions.map((option) => option.value));
+
+function universeFromLocation() {
+  if (typeof window === 'undefined') return 'sp500';
+  const value = new URL(window.location.href).searchParams.get('universe');
+  return universeValues.has(value) ? value : 'sp500';
+}
+
+function updateUniverseUrl(nextUniverse, mode = 'pushState') {
+  const url = new URL(window.location.href);
+  if (nextUniverse === 'sp500') url.searchParams.delete('universe');
+  else url.searchParams.set('universe', nextUniverse);
+  const nextHref = `${url.pathname}${url.search}${url.hash}`;
+  window.history[mode]({ ...window.history.state, universe: nextUniverse }, '', nextHref);
+}
+
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -991,7 +1007,7 @@ function StockList() {
     setLocalizedLink('alternate', CHINESE_LOCALE, pathForLocale(CHINESE_LOCALE, window.location.pathname));
     setLocalizedLink('alternate', 'x-default', pathForLocale(DEFAULT_LOCALE, window.location.pathname));
   }, [locale, t]);
-  const [universe, setUniverse] = React.useState('sp500');
+  const [universe, setUniverse] = React.useState(universeFromLocation);
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
@@ -1005,6 +1021,7 @@ function StockList() {
   const [sortModel, setSortModel] = React.useState([]);
   const [portfolioAccounts, setPortfolioAccounts] = React.useState([]);
   const historyRankLookupRef = React.useRef(new Set());
+  const universeRef = React.useRef(universe);
   const isMobile = useMediaLayout('(max-width: 700px)');
   const isCompactTable = useMediaLayout('(max-width: 1300px)');
   const isNarrowTable = useMediaLayout('(max-width: 1000px)');
@@ -1017,6 +1034,15 @@ function StockList() {
   const activeFavoritesKey = isFavoritesUniverse ? favoriteSymbolsKey : '';
   const favoriteSet = React.useMemo(() => new Set(favoriteSymbols), [favoriteSymbols]);
   const favoriteLimitReached = favoriteSymbols.length >= MAX_FAVORITES;
+
+  const resetUniverseView = React.useCallback(() => {
+    setData(null);
+    setSearch('');
+    setSector('all');
+    setZacksFilter('all');
+    setSortModel([]);
+    setRefreshVersion(0);
+  }, []);
 
   const openStockChart = React.useCallback((stock) => setSelectedStock(stock), []);
   const openRowChart = React.useCallback(({ row }, event) => {
@@ -1036,6 +1062,24 @@ function StockList() {
       return next;
     });
   }, []);
+
+  React.useEffect(() => {
+    const rawUniverse = new URL(window.location.href).searchParams.get('universe');
+    const canonicalUniverse = universe === 'sp500' ? null : universe;
+    if (rawUniverse !== canonicalUniverse) updateUniverseUrl(universe, 'replaceState');
+  }, []);
+
+  React.useEffect(() => {
+    const syncUniverse = () => {
+      const nextUniverse = universeFromLocation();
+      if (nextUniverse === universeRef.current) return;
+      universeRef.current = nextUniverse;
+      setUniverse(nextUniverse);
+      resetUniverseView();
+    };
+    window.addEventListener('popstate', syncUniverse);
+    return () => window.removeEventListener('popstate', syncUniverse);
+  }, [resetUniverseView]);
 
   React.useEffect(() => {
     const syncFavorites = (event) => {
@@ -1236,13 +1280,10 @@ function StockList() {
 
   const selectUniverse = (nextUniverse) => {
     if (nextUniverse === universe) return;
+    updateUniverseUrl(nextUniverse);
+    universeRef.current = nextUniverse;
     setUniverse(nextUniverse);
-    setData(null);
-    setSearch('');
-    setSector('all');
-    setZacksFilter('all');
-    setSortModel([]);
-    setRefreshVersion(0);
+    resetUniverseView();
   };
 
   const exportCurrentTable = () => {
