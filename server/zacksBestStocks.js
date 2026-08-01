@@ -2,14 +2,6 @@ const DEFAULT_REPORT_URL = 'https://www.zacks.com/pfp/report/FD764D21A742A0BDC23
 const EDITION_SCRIPT_BASE_URL = 'https://staticx-tuner.zacks.com/woas/adv/services/reports/weekly/best';
 const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-const DEFAULT_FALLBACK_SNAPSHOT = Object.freeze({
-  edition: '20260724CqKVs2BDXDw30',
-  reportDate: '2026-07-24',
-  reportUrl: DEFAULT_REPORT_URL,
-  resolvedReportUrl: 'https://www.zacks.com/registration/ultimatetrader/welcome/eoffer/3de3?edition=20260724CqKVs2BDXDw30&cid=ec-pfp_conf-pfp_reg_conf-7best-ID01-report_link&',
-  symbols: Object.freeze(['C', 'EXPD', 'KRO', 'MTZ', 'MU', 'TSM', 'URBN']),
-});
-
 function cacheDuration(environmentValue, fallback) {
   const minutes = Number(environmentValue);
   return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 * 1000 : fallback;
@@ -81,7 +73,7 @@ function createZacksBestStocksService({
   cacheTtlMs = cacheDuration(process.env.ZACKS_7_BEST_CACHE_MINUTES, DEFAULT_CACHE_TTL_MS),
   reportUrl = process.env.ZACKS_7_BEST_REPORT_URL || DEFAULT_REPORT_URL,
   editionUrl = process.env.ZACKS_7_BEST_EDITION_URL,
-  fallbackSnapshot = DEFAULT_FALLBACK_SNAPSHOT,
+  fallbackSnapshot = null,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
 
@@ -93,8 +85,7 @@ function createZacksBestStocksService({
       ...options,
       signal: AbortSignal.timeout(12_000),
       headers: {
-        Accept: 'text/html,application/javascript;q=0.9,*/*;q=0.8',
-        'User-Agent': 'Mozilla/5.0 (compatible; NorthstarMarkets/1.0)',
+        'User-Agent': 'Mozilla/5.0',
         ...options.headers,
       },
     });
@@ -130,9 +121,12 @@ function createZacksBestStocksService({
       cache = { report, fetchedAt: now(), sourceStatus: 'refreshed' };
       return { ...report, symbols: [...report.symbols], cacheStatus: 'refreshed' };
     } catch (error) {
+      if (cache?.report) {
+        cache = { ...cache, fetchedAt: now(), sourceStatus: 'stale' };
+        return { ...cache.report, symbols: [...cache.report.symbols], cacheStatus: 'stale' };
+      }
       if (!fallbackSnapshot) throw error;
       const report = {
-        ...DEFAULT_FALLBACK_SNAPSHOT,
         ...fallbackSnapshot,
         reportUrl: fallbackSnapshot.reportUrl || reportUrl,
         symbols: [...fallbackSnapshot.symbols],
@@ -149,7 +143,7 @@ function createZacksBestStocksService({
       return {
         ...cache.report,
         symbols: [...cache.report.symbols],
-        cacheStatus: cache.sourceStatus === 'fallback' ? 'fallback' : 'fresh',
+        cacheStatus: cache.sourceStatus === 'fallback' ? 'fallback' : cache.sourceStatus === 'stale' ? 'stale' : 'fresh',
       };
     }
     if (inFlight) return inFlight;
@@ -162,7 +156,6 @@ function createZacksBestStocksService({
 
 module.exports = {
   DEFAULT_CACHE_TTL_MS,
-  DEFAULT_FALLBACK_SNAPSHOT,
   DEFAULT_REPORT_URL,
   createZacksBestStocksService,
   parseEditionUrl,
